@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { criarApp } from '../app-do-claude.mjs';
 import { criarTroca, ErroDeTroca } from '../troca.mjs';
 import { lerResiduo } from '../conversas.mjs';
-import { CONTA_A, CONTA_B, ORG, controleFalso, entrada, lerJson, montar, textoDeConfig, configDe } from './fabrica.mjs';
+import { CONTA_A, CONTA_B, ORG, controleFalso, entrada, lerJson, montar, textoDeConfig, configDe, COM_MODO } from './fabrica.mjs';
 
 /** A (ativa, com uma conversa) e B (login salvo, com outra conversa), pelo caminho de verdade: adicionar, "entrar" com B, voltar. */
 async function duasContas(opcoes = {}) {
@@ -99,10 +99,10 @@ describe('troca: fluxo completo', () => {
     const { m, troca } = await duasContas();
     await troca.adicionar();
     const modo = (p) => statSync(p).mode & 0o777;
-    assert.equal(modo(join(m.dados, 'contas')), 0o700);
-    assert.equal(modo(join(m.dados, 'contas', CONTA_A)), 0o700);
-    assert.equal(modo(join(m.dados, 'backups')), 0o700);
-    for (const f of ['estado.json', join('contas', CONTA_A, 'config.json'), join('contas', CONTA_A, 'Cookies')]) assert.equal(modo(join(m.dados, f)), 0o600, f);
+    if (COM_MODO) assert.equal(modo(join(m.dados, 'contas')), 0o700);
+    if (COM_MODO) assert.equal(modo(join(m.dados, 'contas', CONTA_A)), 0o700);
+    if (COM_MODO) assert.equal(modo(join(m.dados, 'backups')), 0o700);
+    if (COM_MODO) for (const f of ['estado.json', join('contas', CONTA_A, 'config.json'), join('contas', CONTA_A, 'Cookies')]) assert.equal(modo(join(m.dados, f)), 0o600, f);
   });
 
   it('o estado.json não tem token', async () => {
@@ -420,11 +420,44 @@ describe('troca: adicionar com voltar (F556)', () => {
     const app = criarApp({ dir: m.appDir, controle });
     const logs = [];
     const troca = criarTroca({ env: m.env, app, dados: m.dados, projetos: m.projetos, agora: () => rel.t, log: (t) => logs.push(t) });
-    const opcoes = { voltar: true, prazoMs: PRAZO, intervaloMs: INTERVALO, assentarMs: ASSENTAR, esperar };
+    const opcoes = { voltar: true, prazoMs: PRAZO, intervaloMs: INTERVALO, assentarMs: ASSENTAR, gravarCookiesMs: 0, esperar };
     return { m, rel, esperas, aoFecharEm, controle, app, troca, logs, opcoes };
   }
   const configEm = (m, obj) => writeFileSync(join(m.appDir, 'config.json'), typeof obj === 'string' ? obj : textoDeConfig(obj));
   const aTem = (m, c) => existsSync(join(m.dados, 'contas', c, 'config.json'));
+
+  /** O arquivo com a data de um minuto atrás: gravado antes da entrada vista, com folga no relógio. */
+  const noPassado = (arq) => { const t = new Date(Date.now() - 60_000); utimesSync(arq, t, t); };
+
+  // 18/11/2026, Windows: o app grava os cookies da entrada só no ciclo de 30 s do Chromium, e fechar não os leva. Guardar
+  // 8 s depois da entrada deixou a conta B sem o sessionKey, e o app pediu a entrada de novo ao trocar para ela.
+  it('depois da entrada, espera o app gravar os cookies dela antes de fechar: guarda os cookies novos', async () => {
+    const cookies = (m) => join(m.appDir, 'Cookies');
+    const ctx = await comRelogio({
+      roteiro: (n) => {
+        if (n === 2) { entrarComB(ctx.m); noPassado(cookies(ctx.m)); } // a entrada: config de B, cookies ainda sem a gravação
+        if (n === 5) { writeFileSync(cookies(ctx.m), 'SENTINELA-COOKIE-B-GRAVADO'); const t = new Date(Date.now() + 5000); utimesSync(cookies(ctx.m), t, t); }
+      },
+    });
+    const { m, esperas, troca, opcoes, logs } = ctx;
+    const r = await troca.adicionar({ ...opcoes, gravarCookiesMs: 35_000 });
+    assert.equal(r.conta, CONTA_B);
+    assert.deepEqual(esperas, [INTERVALO, INTERVALO, ASSENTAR, 500, 500], 'espera de meio em meio segundo até os cookies serem gravados');
+    assert.equal(readFileSync(join(m.dados, 'contas', CONTA_B, 'Cookies'), 'utf8'), 'SENTINELA-COOKIE-B-GRAVADO');
+    assert.match(logs.join(' | '), /esperando o app gravar os cookies/);
+  });
+
+  it('os cookies que não são gravados em 35 s não seguram a volta: guarda o que há e avisa no log', async () => {
+    const ctx = await comRelogio({ roteiro: (n) => { if (n === 2) { entrarComB(ctx.m); noPassado(join(ctx.m.appDir, 'Cookies')); } } });
+    const { m, esperas, troca, opcoes, logs, controle } = ctx;
+    const r = await troca.adicionar({ ...opcoes, gravarCookiesMs: ASSENTAR + 2000 }); // o limite conta da entrada: 2 s além da espera mínima
+    assert.equal(r.conta, CONTA_B);
+    assert.deepEqual(esperas.slice(0, 3), [INTERVALO, INTERVALO, ASSENTAR]);
+    assert.deepEqual(esperas.slice(3), [500, 500, 500, 500], esperas.join(','));
+    assert.deepEqual(controle.chamadas, ['fechar', 'abrir', 'fechar', 'abrir']);
+    assert.ok(aTem(m, CONTA_B));
+    assert.match(logs.join(' | '), /não foram gravados a tempo/);
+  });
 
   it('entrou B: guarda B, volta para A (ativa = A) e o app fecha 2 vezes', async () => {
     const ctx = await comRelogio({ roteiro: (n, ms, sinal) => { if (n === 2) entrarComB(ctx.m); } });
@@ -605,7 +638,7 @@ describe('troca: adicionar com voltar (F556)', () => {
       assert.equal(v.lido.desde, iso(inicio));
       assert.equal(v.lido.faseDesde, iso(inicio + 5000), 'a espera começa depois do primeiro fechamento');
       assert.equal(v.lido.prazoEm, iso(inicio + 5000 + PRAZO));
-      assert.equal(v.modo, 0o600);
+      if (COM_MODO) assert.equal(v.modo, 0o600);
       assert.ok(!v.bruto.includes('SENTINELA'));
       assert.equal(v.trava, String(process.pid), 'a trava está presa durante a espera');
     }

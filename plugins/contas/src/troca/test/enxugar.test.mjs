@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync, statSync, utimesSync, writeFileS
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { enxugar, hashDoArquivo, reclonar } from '../conversas.mjs';
-import { CONTA_A, CONTA_B, ORG, entrada, montar } from './fabrica.mjs';
+import { CONTA_A, CONTA_B, ORG, entrada, montar, COM_MODO } from './fabrica.mjs';
 
 const ORG2 = 'org-0002';
 /**
@@ -64,7 +64,7 @@ describe('enxugar: aplica', () => {
     assert.deepEqual({ reclonados: r.reclonados, pulados: r.pulados, copias: r.copias }, { reclonados: 3, pulados: 0, copias: 3 });
     // O conteúdo e a data seguem os mesmos em todos os seis; a cópia reescrita fica 0600, que é como a troca grava.
     for (const [k, c] of Object.entries(p)) assert.deepEqual({ mtimeMs: selo(c).mtimeMs, texto: selo(c).texto }, { mtimeMs: antes[k].mtimeMs, texto: antes[k].texto }, k);
-    for (const k of ['bX', 'b2X', 'b2Z']) assert.equal(selo(p[k]).modo, 0o600, k);
+    if (COM_MODO) for (const k of ['bX', 'b2X', 'b2Z']) assert.equal(selo(p[k]).modo, 0o600, k);
     for (const k of ['refX', 'bZ', 'bY']) assert.equal(selo(p[k]).modo, antes[k].modo, k);
     // A referência e o doador do grupo sem referência não são reescritos; o arquivo único também não.
     for (const k of ['refX', 'bZ', 'bY']) assert.equal(ino(p[k]), antes[k].ino, `${k} foi reescrito e não devia`);
@@ -119,7 +119,7 @@ describe('reclonar: a guarda contra gravação alheia', () => {
     assert.deepEqual(tmpsSoltos(amb.sessoes), []);
     // Selo certo: grava, mantendo a data do destino.
     assert.equal(reclonar(src, dst, { hash, mtimeMs: antes.mtimeMs, tamanho }), true);
-    assert.deepEqual(selo(dst), { mtimeMs: antes.mtimeMs, modo: 0o600, texto: antes.texto });
+    assert.deepEqual(selo(dst), { mtimeMs: antes.mtimeMs, modo: COM_MODO ? 0o600 : antes.modo, texto: antes.texto });
     assert.notEqual(ino(dst), antes.ino);
   });
 

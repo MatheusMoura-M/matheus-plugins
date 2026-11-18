@@ -1,6 +1,6 @@
 {
   "name": "contas",
-  "description": "Várias contas do app do Claude no Mac: o painel local com a cota de cada conta e a troca sem Sign out, com as sessões do Code continuando na conta nova. Traz o botão Contas da barra e a skill trocar-conta.",
+  "description": "Várias contas do app do Claude (macOS e Windows): o painel local com a cota de cada conta e a troca sem Sign out, com as sessões do Code continuando na conta nova. Traz o botão Contas da barra e a skill trocar-conta.",
   "author": {
     "name": "Matheus Moura"
   },
@@ -10,6 +10,7 @@
     "contas",
     "cota",
     "troca-de-conta",
-    "macos"
+    "macos",
+    "windows"
   ]
 }

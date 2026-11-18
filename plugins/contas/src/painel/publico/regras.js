@@ -168,7 +168,14 @@ const CHAVE = {
   negada: 'O Keychain não liberou a senha; a cota não foi lida. Tente de novo e clique em Permitir.',
   pronta: '',
 };
-export const fraseDaChave = (chave) => CHAVE[chave] ?? '';
+// No Windows a chave sai do `Local State` do app pela DPAPI da conta do Windows: não há aviso nem senha.
+const CHAVE_NO_WINDOWS = {
+  ...CHAVE,
+  sem: 'Para ler a cota, o painel abre a chave que o app do Claude guarda nesta conta do Windows. Nada é pedido a você.',
+  negada: 'O Windows não abriu a chave do app do Claude; a cota não foi lida. Tente de novo.',
+};
+/** A frase da chave; `plataforma` é a do servidor (`process.platform`, que o `GET /api/contas` diz). */
+export const fraseDaChave = (chave, plataforma) => (plataforma === 'win32' ? CHAVE_NO_WINDOWS : CHAVE)[chave] ?? '';
 
 /** A partir de quanto tempo sem ler a cota a página pede, em destaque, para ler de novo. */
 export const COTA_VELHA_MS = 30 * 60_000;

@@ -1,14 +1,19 @@
-// A pasta de dados do app desktop do Claude no Mac: caminhos, config.json com conferência de formato e o controle do app.
-// Port da lógica de desktop.go e platform_darwin.go do Claude Account Switcher (ver NOTICE).
+// A pasta de dados do app desktop do Claude (Mac e Windows): caminhos, config.json com conferência de formato e o controle do app.
+// Port da lógica de desktop.go e platform_darwin.go do Claude Account Switcher (ver NOTICE); o Windows está em windows.mjs.
 import { spawnSync } from 'node:child_process';
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
+import { controleDoWindows, pastaDoAppNoWindows } from './windows.mjs';
 
 /** As chaves do config.json que pertencem à conta logada; o resto é estado do app, comum a todas. */
 export const CHAVES_LOGIN = ['oauth:tokenCache', 'oauth:tokenCacheV2', 'lastKnownAccountUuid'];
 
-export const pastaDoApp = (env = process.env) => env.CLAUDE_APP_DIR || join(homedir(), 'Library', 'Application Support', 'Claude');
+/** O pedido de cancelar o "adicionar e voltar" no Windows (lá o `SIGTERM` mata na hora, sem o handler que volta para a conta de antes). Leva o pid de quem deve cancelar. */
+export const ARQUIVO_DE_CANCELAR = 'cancelar-adicionar';
+
+export const pastaDoApp = (env = process.env, plataforma = process.platform) => env.CLAUDE_APP_DIR
+  || (plataforma === 'win32' ? pastaDoAppNoWindows(env) : join(homedir(), 'Library', 'Application Support', 'Claude'));
 export const pastaDeDados = (env = process.env) => env.TROCA_DE_CONTA_DIR || join(homedir(), '.claude-account-switcher');
 export const pastaDeProjetos = (env = process.env) => join(env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude'), 'projects');
 
@@ -77,7 +82,8 @@ export function gravarObjeto(caminho, obj) {
  * app (terminal do app, painel aberto por ele) descende do Claude, então o pgrep dizia "não está rodando", a troca não
  * fechava o app e gravava o login com ele aberto (13/11/2026). `executar` e `dormir` existem para o teste.
  */
-export function controleReal({ esperaFechar = 20_000, esperaMatar = 10_000, executar = spawnSync, dormir = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
+export function controleReal({ esperaFechar = 20_000, esperaMatar = 10_000, executar = spawnSync, dormir = (ms) => new Promise((r) => setTimeout(r, ms)), plataforma = process.platform, log } = {}) {
+  if (plataforma === 'win32') return controleDoWindows({ esperaFechar, esperaMatar, executar, dormir, log });
   const rodando = () => executar('pgrep', ['-a', '-x', 'Claude'], { stdio: 'ignore' }).status === 0;
   const esperarSair = async (limite) => {
     for (const fim = Date.now() + limite; Date.now() < fim; await dormir(300)) {

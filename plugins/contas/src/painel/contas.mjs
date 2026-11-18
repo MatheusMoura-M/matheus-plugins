@@ -1,13 +1,15 @@
 // As contas do app do Claude no painel: o que a tela lê (`lerContas`) e as três ações (`lancar` trocar e
 // adicionar, `nomear`). Quem troca é o CLI `trocar-conta`, num processo solto: a troca fecha e reabre o app, e o app
 // pode ser quem abriu esta página. O CLI deixa o desfecho em `ultima-acao.json`, que a página lê. Nada aqui lê token.
-import { chmodSync, closeSync, openSync, readFileSync, statSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { chmodSync, closeSync, openSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync, spawn as spawnReal } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { criarApp, criarPasta, pastaDeDados } from '../troca/app-do-claude.mjs';
+import { ARQUIVO_DE_CANCELAR, criarApp, criarPasta, escreverAtomico, pastaDeDados } from '../troca/app-do-claude.mjs';
 import { criarTroca } from '../troca/troca.mjs';
 import { faltamPeloNome, lerResiduo } from '../troca/conversas.mjs';
+import { VARIAVEIS_DO_SOLTO, comandoDoPidNoWindows, soltarPeloWmi } from '../troca/windows.mjs';
 import { emailsDasContas, estadoDoUso, usoParaATela } from './uso.mjs';
 
 export const CLI_DA_TROCA = fileURLToPath(new URL('../troca/cli.mjs', import.meta.url));
@@ -62,8 +64,24 @@ function lerAndamento(env) {
       return { pid, desde: new Date(statSync(trava).mtimeMs).toISOString(), comando: ad && ad.pid === pid ? 'adicionar' : meu?.comando ?? null, conta: meu?.conta ?? null, ...espera };
     }
   } catch { /* sem trava */ }
+  if (filho?.peloWmi && !filhoDoWmiValendo(env)) filho = null;
   if (filho && vivo(filho.pid)) return { pid: filho.pid, desde: filho.desde, comando: filho.comando, conta: filho.conta };
   return null;
+}
+
+/** Até a troca pegar a trava, o filho lançado pelo WMI vale pelo pid; depois disso, só a trava prova que ainda é ele. */
+const PRAZO_PARA_PEGAR_A_TRAVA_MS = 30_000;
+
+/**
+ * O filho lançado pelo WMI não tem evento de saída, e o Windows reaproveita pid depressa (a troca sobe dezenas de
+ * PowerShell): pid vivo não prova que é ele. Vale enquanto não deixou desfecho com o pid dele e, passado o prazo de
+ * pegar a trava, só se a trava ainda é dele (sem trava, ou com a de outro, a troca dele acabou).
+ */
+function filhoDoWmiValendo(env) {
+  const u = lerUltima(env);
+  if (u && u.pid === filho.pid && Date.parse(u.fim) >= Date.parse(filho.desde)) return false;
+  if (Date.now() - Date.parse(filho.desde) < PRAZO_PARA_PEGAR_A_TRAVA_MS) return true;
+  return pidDaTrava(env) === filho.pid;
 }
 
 function lerUltima(env) {
@@ -99,7 +117,8 @@ function lerLista({ env, app, ativa, andamento }) {
 
 /** `{ ativa, contas, andamento, ultima, lista, chave, chaveDesde, chaveMotivo, lendoUso, uso, emails }` (`lista`: `{ faltam, residuo }` da conta ativa ou null; `chave`: sem, lendo, pronta ou negada; `uso`: o cache por uuid, sem token; `emails`: o e-mail que se sabe de cada uuid); erro ao ler o app vira `erro` e `erroCodigo` (`semConfig`, `formato` ou `outro`) com `contas: []`. */
 export function lerContas({ env = process.env, app } = {}) {
-  const base = { andamento: lerAndamento(env), ultima: lerUltima(env), ...estadoDoUso(), uso: usoParaATela(env), emails: emailsDasContas(env) };
+  // `plataforma` escolhe as frases da chave na tela (Keychain no Mac, DPAPI no Windows).
+  const base = { andamento: lerAndamento(env), ultima: lerUltima(env), ...estadoDoUso(), uso: usoParaATela(env), emails: emailsDasContas(env), plataforma: process.platform };
   try {
     const doApp = appDe(env, app);
     const { ativa, contas } = criarTroca({ env, app: doApp }).estado();
@@ -114,8 +133,20 @@ export function esquecerFilho() { filho = null; }
 
 const recusa = (codigo) => ({ ok: false, codigo });
 
-/** Valida e lança o CLI solto (sem shell). `conta` só vale para `trocar`: exatamente um uuid listado. `sincronizar` não recebe conta: vale para a ativa. `voltar: true` só vale para `adicionar` (`adicionar --voltar`). */
-export function lancar({ comando, conta, voltar = false, env = process.env, app, cli = CLI_DA_TROCA, spawn = spawnReal } = {}) {
+/**
+ * O filho solto no Windows: pelo WMI, fora do Job do pacote do app (senão morre quando a troca fecha o app). Devolve um
+ * objeto com o `pid`, como o do `spawn`. O pedido leva só as variáveis de `VARIAVEIS_DO_SOLTO` e o log; `solto.mjs` o apaga.
+ */
+export function spawnPeloWmi(execPath, [script, ...args], { env = process.env, log } = {}) {
+  const dados = pastaDeDados(env);
+  const pedido = join(dados, `pedido-${randomBytes(8).toString('hex')}.json`);
+  const variaveis = Object.fromEntries(VARIAVEIS_DO_SOLTO.filter((k) => typeof env[k] === 'string').map((k) => [k, env[k]]));
+  escreverAtomico(pedido, JSON.stringify({ variaveis, log }));
+  try { return { pid: soltarPeloWmi({ script, args, pedido, pasta: dados }) }; } catch (e) { rmSync(pedido, { force: true }); throw e; }
+}
+
+/** Valida e lança o CLI solto (sem shell). `conta` só vale para `trocar`: exatamente um uuid listado. `sincronizar` não recebe conta: vale para a ativa. `voltar: true` só vale para `adicionar` (`adicionar --voltar`). `spawn` entra nos testes; sem ele, o do sistema (no Windows, pelo WMI). */
+export function lancar({ comando, conta, voltar = false, env = process.env, app, cli = CLI_DA_TROCA, spawn } = {}) {
   if (comando !== 'trocar' && comando !== 'adicionar' && comando !== 'sincronizar') return recusa('invalida');
   if (comando === 'trocar' && typeof conta !== 'string') return recusa('invalida');
   const andamento = lerAndamento(env);
@@ -136,10 +167,19 @@ export function lancar({ comando, conta, voltar = false, env = process.env, app,
   const dados = pastaDeDados(env);
   criarPasta(dados);
   const log = join(dados, 'pagina-troca.log');
+  const argv = comando === 'trocar' ? [cli, conta] : comando === 'sincronizar' ? [cli, 'sincronizar'] : voltar === true ? [cli, 'adicionar', '--voltar'] : [cli, 'adicionar'];
   const fd = openSync(log, 'a', 0o600);
   try {
     chmodSync(log, 0o600);
-    const filha = spawn(process.execPath, comando === 'trocar' ? [cli, conta] : comando === 'sincronizar' ? [cli, 'sincronizar'] : voltar === true ? [cli, 'adicionar', '--voltar'] : [cli, 'adicionar'], { detached: true, stdio: ['ignore', fd, fd], env });
+    if (!spawn && process.platform === 'win32') {
+      let filha;
+      try { filha = spawnPeloWmi(process.execPath, argv, { env, log }); } catch { return recusa('outro'); }
+      const desde = new Date().toISOString();
+      const quem = { comando, conta: comando === 'trocar' ? conta : comando === 'sincronizar' ? ativa : null };
+      filho = { pid: filha.pid, desde, ...quem, peloWmi: true }; // sem processo-filho para ouvir a saída: ver `filhoDoWmiValendo`
+      return { ok: true, andamento: { pid: filha.pid, desde, ...quem } };
+    }
+    const filha = (spawn ?? spawnReal)(process.execPath, argv, { detached: true, windowsHide: true, stdio: ['ignore', fd, fd], env });
     const desde = new Date().toISOString();
     const quem = { comando, conta: comando === 'trocar' ? conta : comando === 'sincronizar' ? ativa : null };
     filho = { pid: filha.pid, desde, ...quem };
@@ -164,10 +204,28 @@ export function nomear({ conta, nome, env = process.env, app } = {}) {
   } catch (e) { return recusa(e?.codigo === 'repetido' ? 'repetido' : 'outro'); }
 }
 
-/** O comando de um processo (`ps -o command= -p <pid>`); vazio se não der para ler. */
+/** O comando de um processo (`ps -o command= -p <pid>`; no Windows, o `CommandLine` do WMI); vazio se não der para ler. */
 function comandoDoPidReal(pid) {
+  if (process.platform === 'win32') return comandoDoPidNoWindows(pid);
   try { return execFileSync('ps', ['-o', 'command=', '-p', String(pid)], { encoding: 'utf8', timeout: 5000, killSignal: 'SIGKILL' }).trim(); } catch { return ''; }
 }
+
+/**
+ * O cancelamento de verdade: o `SIGTERM`, que o CLI pega e volta para a conta de antes. No Windows o `SIGTERM` do Node
+ * mata na hora, sem handler, e o app ficaria na tela de entrada: lá vai o pedido em `cancelar-adicionar` (com o pid), que
+ * o CLI confere a cada volta da espera.
+ */
+const TENTATIVAS_DO_PEDIDO = 5;
+const cancelarDeVerdade = (env) => (pid, sinal) => {
+  if (process.platform !== 'win32') { process.kill(pid, sinal); return; }
+  // O rename sobre o pedido pode dar EPERM/EBUSY no Windows se a troca o lê no mesmo instante: tenta de novo, 50 ms depois.
+  for (let i = 1; ; i++) {
+    try { escreverAtomico(join(pastaDeDados(env), ARQUIVO_DE_CANCELAR), String(pid)); return; } catch (e) {
+      if (i >= TENTATIVAS_DO_PEDIDO || (e?.code !== 'EPERM' && e?.code !== 'EBUSY' && e?.code !== 'EACCES')) throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
+    }
+  }
+};
 
 const recusaComMotivo = (codigo, motivo) => ({ ok: false, codigo, motivo });
 
@@ -176,13 +234,13 @@ const recusaComMotivo = (codigo, motivo) => ({ ok: false, codigo, motivo });
  * Só manda se o `adicionar.json` existe, o pid dele é o da `troca.lock`, o processo está vivo, a fase é `esperando` e o comando
  * dele é o CLI da troca; fora disso recusa (`fase` se já é outra fase, `semEspera` nos demais) e não mata nada. `kill` e `comandoDoPid` entram nos testes.
  */
-export function cancelarAdicionar({ env = process.env, kill = (pid, sinal) => process.kill(pid, sinal), comandoDoPid = comandoDoPidReal } = {}) {
+export function cancelarAdicionar({ env = process.env, kill = cancelarDeVerdade(env), comandoDoPid = comandoDoPidReal } = {}) {
   const ad = lerAdicionar(env);
   if (!ad) return recusaComMotivo('semEspera', 'não há uma conta esperando a entrada agora');
   if (pidDaTrava(env) !== ad.pid) return recusaComMotivo('semEspera', 'o processo que espera a entrada não é o que está com a troca; nada foi cancelado');
   if (!vivo(ad.pid)) return recusaComMotivo('semEspera', 'o processo que esperava a entrada já terminou');
   if (ad.fase !== 'esperando') return recusaComMotivo('fase', 'a espera já acabou; o app está voltando para a conta de antes');
-  if (!String(comandoDoPid(ad.pid) ?? '').includes('src/troca/cli.mjs')) return recusaComMotivo('semEspera', 'o processo que espera a entrada não é o da troca de conta; nada foi cancelado');
+  if (!String(comandoDoPid(ad.pid) ?? '').replaceAll('\\', '/').includes('src/troca/cli.mjs')) return recusaComMotivo('semEspera', 'o processo que espera a entrada não é o da troca de conta; nada foi cancelado');
   try { kill(ad.pid, 'SIGTERM'); } catch (e) { return e?.code === 'ESRCH' ? recusaComMotivo('semEspera', 'o processo que esperava a entrada já terminou') : recusa('outro'); }
   return { ok: true };
 }

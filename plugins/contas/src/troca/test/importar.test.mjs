@@ -4,7 +4,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync
 import { join } from 'node:path';
 import { haParaImportar, importar } from '../importar.mjs';
 import { principal } from '../cli.mjs';
-import { CONTA_A, CONTA_B, configDe, controleFalso, montar, textoDeConfig } from './fabrica.mjs';
+import { CONTA_A, CONTA_B, configDe, controleFalso, montar, textoDeConfig, COM_MODO } from './fabrica.mjs';
 
 /** Uma pasta do kit com A e B guardadas. */
 function kitCom(m) {
@@ -29,9 +29,9 @@ describe('importar do kit', () => {
     chmodSync(join(origem, 'contas'), 0o755);
     chmodSync(join(origem, 'estado.json'), 0o644);
     const r = importar({ origem, destino });
-    assert.equal(statSync(join(destino, 'contas')).mode & 0o777, 0o700);
-    assert.equal(statSync(join(destino, 'contas', CONTA_B, 'Cookies')).mode & 0o777, 0o600);
-    assert.equal(statSync(join(destino, 'estado.json')).mode & 0o777, 0o600);
+    if (COM_MODO) assert.equal(statSync(join(destino, 'contas')).mode & 0o777, 0o700);
+    if (COM_MODO) assert.equal(statSync(join(destino, 'contas', CONTA_B, 'Cookies')).mode & 0o777, 0o600);
+    if (COM_MODO) assert.equal(statSync(join(destino, 'estado.json')).mode & 0o777, 0o600);
     assert.deepEqual(r.copiados, ['contas', 'uso.json', 'estado.json']);
     assert.equal(readFileSync(join(destino, 'contas', CONTA_B, 'Cookies'), 'utf8'), 'SENTINELA-COOKIE-B');
     assert.equal(JSON.parse(readFileSync(join(destino, 'estado.json'), 'utf8')).contas[CONTA_B].nome, 'Trabalho');

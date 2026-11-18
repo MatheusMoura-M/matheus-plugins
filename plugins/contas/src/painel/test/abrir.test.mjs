@@ -90,6 +90,16 @@ test('a linha de comando prova o servidor do painel, no cache ou no repositório
   assert.equal(pastaDoServidorDoPainel('node /outro/app/src/painel/cli.mjs'), null);
 });
 
+test('no Windows a linha de comando também prova o painel: barra invertida, node.exe, aspas, espaço na pasta e o --import de quem sobe pelo WMI', () => {
+  const pasta = String.raw`C:\Users\x\.claude\plugins\cache\matheus-plugins\contas\2421f3c7eafd`;
+  assert.equal(pastaDoServidorDoPainel(String.raw`C:\nvm4w\nodejs\node.exe ${pasta}\src\painel\cli.mjs --porta 4791 --sem-abrir`), pasta);
+  assert.equal(pastaDoServidorDoPainel(String.raw`"C:\Program Files\nodejs\node.exe" "--import" "file:///C:/x/solto.mjs" "${pasta}\src\painel\cli.mjs" "--porta" "4791"`), pasta);
+  const comEspaco = String.raw`C:\Users\Nome Sobrenome\.claude\plugins\cache\m\contas\abc`;
+  assert.equal(pastaDoServidorDoPainel(String.raw`"C:\nodejs\node.exe" "${comEspaco}\src\painel\cli.mjs" "--sem-abrir"`), comEspaco);
+  assert.equal(pastaDoServidorDoPainel(String.raw`C:\nodejs\node.exe ${pasta}\src\troca\cli.mjs`), null);
+  assert.equal(pastaDoServidorDoPainel(String.raw`C:\nodejs\node.exe C:\outro\app\src\painel\cli.mjs`), null);
+});
+
 /** `abrirPainel` com a saúde e os processos falsos; devolve o que encerrou, se subiu outro e os avisos. */
 async function abrirSobre({ pastaNoAr, comando }) {
   const { r, deps } = coletor();
@@ -132,7 +142,7 @@ test('sem provar pela linha de comando, nada é encerrado e o painel no ar segue
 });
 
 test('ponta a ponta: painel de uma cópia antiga no ar é derrubado e o desta versão passa a responder', async (t) => {
-  if (process.platform !== 'darwin') { t.skip('a prova pela linha de comando usa lsof e ps do macOS'); return; }
+  if (process.platform !== 'darwin' && process.platform !== 'win32') { t.skip('a prova pela linha de comando usa lsof e ps (macOS) ou netstat e WMI (Windows)'); return; }
   const raiz = realpathSync(mkdtempSync(join(tmpdir(), 'f23-')));
   const velha = join(raiz, 'contas', 'velha');
   cpSync(join(PASTA_DO_PLUGIN, 'src'), join(velha, 'src'), { recursive: true, filter: (o) => !o.includes('/test') });
@@ -150,7 +160,9 @@ test('ponta a ponta: painel de uma cópia antiga no ar é derrubado e o desta ve
     assert.equal(codigo, 0, r.erro.join());
     const velho = filhos[0];
     if (velho.exitCode === null && velho.signalCode === null) await Promise.race([once(velho, 'exit'), new Promise((r) => setTimeout(r, 2000))]);
-    assert.equal(velho.signalCode, 'SIGTERM', 'o servidor antigo não foi encerrado');
+    // No Windows o SIGTERM vindo de fora é um TerminateProcess: o filho sai com código, sem nome de sinal.
+    if (process.platform === 'win32') assert.ok(velho.exitCode !== null || velho.signalCode !== null, 'o servidor antigo não foi encerrado');
+    else assert.equal(velho.signalCode, 'SIGTERM', 'o servidor antigo não foi encerrado');
     assert.equal((await saudeDoPainel(porta))?.pasta, PASTA_DO_PLUGIN, 'a porta não serve o painel desta versão');
   } finally {
     for (const f of filhos) f.kill();

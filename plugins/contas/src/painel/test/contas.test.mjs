@@ -2,14 +2,14 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync, statSync, utimesSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync, existsSync, statSync, utimesSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { spawn as spawnProcesso, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { lerContas, lancar, nomear, cancelarAdicionar, esquecerFilho, CLI_DA_TROCA } from '../contas.mjs';
 import { criarServidor } from '../servidor.mjs';
-import { montar, entrada, CONTA_A, CONTA_B, SENTINELAS, textoDeConfig, configDe } from '../../troca/test/fabrica.mjs';
+import { montar, entrada, CONTA_A, CONTA_B, SENTINELAS, textoDeConfig, configDe, COM_MODO } from '../../troca/test/fabrica.mjs';
 import { gravarResiduo } from '../../troca/conversas.mjs';
 import { criarApp } from '../../troca/app-do-claude.mjs';
 
@@ -348,7 +348,7 @@ test('lancar: o caso bom chama o spawn (a prova de que as recusas abaixo não o 
   assert.equal(opcoes.stdio[1], opcoes.stdio[2]);
   assert.equal(typeof r.andamento.desde, 'string');
   assert.ok(existsSync(join(m.dados, 'pagina-troca.log')));
-  assert.equal(statSync(join(m.dados, 'pagina-troca.log')).mode & 0o777, 0o600);
+  if (COM_MODO) assert.equal(statSync(join(m.dados, 'pagina-troca.log')).mode & 0o777, 0o600);
   const ad = lancar({ comando: 'adicionar', env: m.env, cli: '/x/cli.mjs', spawn: e.spawn, conta: 'ignorada' });
   assert.equal(ad.codigo, 'ocupado', 'o filho vivo do módulo vale como andamento');
 });
@@ -403,20 +403,28 @@ test('lancar: conta sem login salvo recusa semLogin; trava viva recusa ocupado',
 
 test('lancar real: o processo recebe os argumentos, sai da sessão da página e a saída vai ao log', () => {
   const m = ambiente();
-  const marca = join(m.raiz, 'argumentos.json');
+  // A marca vai à pasta de dados pelo ambiente: no Windows o filho nasce pelo WMI e só leva as variáveis da troca.
+  const marca = join(m.dados, 'argumentos.json');
   const script = join(m.raiz, 'cli-falso.mjs');
-  writeFileSync(script, `import { writeFileSync } from 'node:fs';\nconsole.log('saida-do-filho');\nwriteFileSync(process.env.MARCA, JSON.stringify({ argv: process.argv.slice(2), pid: process.pid }));\nsetTimeout(() => {}, 3000);\n`);
-  const r = lancar({ comando: 'trocar', conta: CONTA_B, env: { ...m.env, MARCA: marca }, cli: script });
+  writeFileSync(script, `import { writeFileSync } from 'node:fs';\nimport { join } from 'node:path';\nconsole.log('saida-do-filho');\nwriteFileSync(join(process.env.TROCA_DE_CONTA_DIR, 'argumentos.json'), JSON.stringify({ argv: process.argv.slice(2), pid: process.pid, segredo: process.env.SEGREDO_DO_TESTE ?? null }));\nsetTimeout(() => {}, 3000);\n`);
+  const r = lancar({ comando: 'trocar', conta: CONTA_B, env: { ...m.env, SEGREDO_DO_TESTE: 'nao-pode-ir-a-disco' }, cli: script });
   assert.equal(r.ok, true);
   assert.ok(Number.isInteger(r.andamento.pid) && r.andamento.pid !== process.pid);
   try {
-    const ps = spawnSync('ps', ['-o', 'pgid=', '-p', String(r.andamento.pid)], { encoding: 'utf8', timeout: 10_000, killSignal: 'SIGKILL' });
-    assert.equal(Number(ps.stdout.trim()), r.andamento.pid, 'o filho é líder do próprio grupo (solto)');
+    if (process.platform !== 'win32') {
+      const ps = spawnSync('ps', ['-o', 'pgid=', '-p', String(r.andamento.pid)], { encoding: 'utf8', timeout: 10_000, killSignal: 'SIGKILL' });
+      assert.equal(Number(ps.stdout.trim()), r.andamento.pid, 'o filho é líder do próprio grupo (solto)');
+    }
     for (const fim = Date.now() + 15_000; !existsSync(marca) && Date.now() < fim;) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
     assert.ok(existsSync(marca), 'o filho rodou');
     const lido = JSON.parse(readFileSync(marca, 'utf8'));
     assert.deepEqual(lido.argv, [CONTA_B]);
     assert.equal(lido.pid, r.andamento.pid);
+    if (process.platform === 'win32') {
+      // Pelo WMI o filho só leva as variáveis da troca: o resto do ambiente (que pode ter segredo) não vai ao pedido nem a ele.
+      assert.equal(lido.segredo, null);
+      assert.deepEqual(readdirSync(m.dados).filter((n) => n.startsWith('pedido-')), [], 'o pedido some depois de lido');
+    }
     assert.match(readFileSync(join(m.dados, 'pagina-troca.log'), 'utf8'), /saida-do-filho/);
     assert.equal(lerContas({ env: m.env }).andamento.pid, r.andamento.pid);
   } finally { try { process.kill(r.andamento.pid, 'SIGKILL'); } catch { /* já saiu */ } }
@@ -424,7 +432,7 @@ test('lancar real: o processo recebe os argumentos, sai da sessão da página e 
 
 test('o cli padrão é o da troca de conta', () => {
   assert.ok(existsSync(CLI_DA_TROCA));
-  assert.match(CLI_DA_TROCA, /troca\/cli\.mjs$/);
+  assert.match(CLI_DA_TROCA, /troca[\\/]cli\.mjs$/);
 });
 
 test('nomear: grava, apara e valida', () => {

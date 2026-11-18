@@ -1,10 +1,14 @@
 // Os fluxos da troca de conta: trocar, adicionar, sincronizar, nomear e o estado. Port de switcher.go (ver NOTICE),
 // sem uso das contas, sem troca automática e sem projetos.
-import { closeSync, existsSync, openSync, readFileSync, rmSync, statfsSync, writeSync } from 'node:fs';
+import { closeSync, existsSync, openSync, readFileSync, rmSync, statSync, statfsSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import { criarApp, criarPasta, escreverAtomico, idSeguro, pastaDeDados, pastaDeProjetos } from './app-do-claude.mjs';
 import { backup, limparLogin, restaurarBackup, restaurarPerfil, salvarPerfil } from './perfis.mjs';
 import { conversasEmAndamento, enxugar, faltamPeloNome, gravarResiduo, limparMarca, organizacoesDa, sincronizar, tomarConversasCortadas } from './conversas.mjs';
+
+/** O Chromium grava os cookies a cada 30 s; 5 s de folga para um computador ocupado (como no Claude Account Switcher). */
+const GRAVAR_COOKIES_MS = 35_000;
+const VOLTA_DOS_COOKIES_MS = 500;
 
 /** Erro de uso: a mensagem já é para a pessoa. `codigo = 'ocupado'` marca a recusa por trava (outra troca em andamento). */
 export class ErroDeTroca extends Error {}
@@ -213,10 +217,10 @@ export function criarTroca({ env = process.env, app = criarApp({ dir: env.CLAUDE
    * dela e volta para a conta de antes (o app fecha 2 vezes); sem conta de antes, recusa com `semAtiva`. Prazo e
    * cancelamento (`sinal`) também voltam para a de antes e lançam `ErroDeTroca` com `codigo` `prazo` ou `cancelado`; login novo que não deu para guardar volta
    * para a de antes e lança com `codigo` `naoGuardou`.
-   * `esperar(ms, sinal)` entra nos testes.
+   * `esperar(ms, sinal)` entra nos testes. `gravarCookiesMs`: até quanto esperar, depois da entrada, o app gravar os cookies dela.
    */
-  async function adicionar({ voltar = false, prazoMs = 15 * 60_000, intervaloMs = 2000, assentarMs = 8000, sinal, esperar = esperarReal } = {}) {
-    if (voltar) return adicionarEVoltar({ prazoMs, intervaloMs, assentarMs, sinal, esperar });
+  async function adicionar({ voltar = false, prazoMs = 15 * 60_000, intervaloMs = 2000, assentarMs = 8000, gravarCookiesMs = GRAVAR_COOKIES_MS, sinal, esperar = esperarReal } = {}) {
+    if (voltar) return adicionarEVoltar({ prazoMs, intervaloMs, assentarMs, gravarCookiesMs, sinal, esperar });
     const e = lerEstado();
     await reiniciar((ativaAntes) => {
       if (ativaAntes) {
@@ -238,7 +242,21 @@ export function criarTroca({ env = process.env, app = criarApp({ dir: env.CLAUDE
     try { escreverAtomico(join(dados, 'adicionar.json'), JSON.stringify({ pid: process.pid, ...campos, faseDesde: new Date(agora()).toISOString() })); } catch (err) { log(`adicionar.json não gravado: ${err.message}`); }
   }
 
-  async function adicionarEVoltar({ prazoMs, intervaloMs, assentarMs, sinal, esperar }) {
+  /**
+   * O Chromium só grava no disco as mudanças de cookie a cada 30 s, e o app que fecha não as leva junto: o login guardado
+   * cedo demais fica sem o `sessionKey` e o app pede a entrada de novo ao voltar a ele (medido no Windows em 18/11/2026; é
+   * o #58 do Claude Account Switcher, de onde vem o critério). Espera o arquivo de cookies ser gravado depois da entrada
+   * vista (`desdeReal`, no relógio dos arquivos) ou passar `limiteMs` dela (`desde`, no relógio da troca).
+   */
+  async function esperarCookies({ desde, desdeReal, limiteMs, esperar }) {
+    const gravados = () => { try { return statSync(app.arquivosDeCookie()[0]).mtimeMs > desdeReal; } catch { return false; } };
+    if (limiteMs <= 0 || gravados()) return;
+    log('esperando o app gravar os cookies da entrada (até 35 s)…');
+    while (!gravados() && agora() - desde < limiteMs) await esperar(VOLTA_DOS_COOKIES_MS);
+    if (!gravados()) log('os cookies da entrada não foram gravados a tempo; o login guardado pode pedir a entrada de novo');
+  }
+
+  async function adicionarEVoltar({ prazoMs, intervaloMs, assentarMs, gravarCookiesMs, sinal, esperar }) {
     app.lerConfig(); // formato inesperado recusa antes de fechar o app
     const soltar = travar();
     const arquivo = join(dados, 'adicionar.json');
@@ -291,8 +309,11 @@ export function criarTroca({ env = process.env, app = criarApp({ dir: env.CLAUDE
         const prazoIso = prazoEm === null ? null : new Date(prazoEm).toISOString();
         fase('voltando', { motivo, prazoEm: prazoIso }); // no instante em que a parada é decidida: o cancelar some da tela
         if (motivo === 'entrou') {
+          const entrouEm = agora();
+          const entrouEmReal = Date.now();
           log('entrada vista; esperando o app terminar de gravar o login…');
           await esperar(assentarMs); // dentro do voltando: sinal daqui em diante não muda nada
+          await esperarCookies({ desde: entrouEm, desdeReal: entrouEmReal, limiteMs: gravarCookiesMs, esperar });
         }
       } catch (err) { erroDaEspera = err; }
 
