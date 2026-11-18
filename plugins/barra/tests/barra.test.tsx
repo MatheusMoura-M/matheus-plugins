@@ -325,6 +325,28 @@ test('ausente: ICHIKAWA_HOME troca a pasta', async ($, on) => {
   expect(m.arquivos.has('/tmp/outra/ausente.json')).toBe(true)
 })
 
+// No Windows o motor entrega o caminho com `\`: o teste compara com `/`, para valer nos dois sistemas.
+const comBarra = (p: string) => p.replace(/\\/g, '/')
+
+test('ausente: sem HOME (Windows), a pasta sai do USERPROFILE', async ($, on) => {
+  const m = await iniciar($, on, { env: { HOME: '', USERPROFILE: 'C:\\Users\\x' } })
+  const ui = await montar($, 'desktop')
+  await ui.press({ key: 'ausente' })
+  await ui.unmount()
+  const gravados = [...m.arquivos.keys()].map(comBarra)
+  expect(gravados.some(k => k.endsWith('/Users/x/.claude/ichikawa/ausente.json'))).toBe(true)
+  expect(gravados.some(k => k.includes('undefined'))).toBe(false)
+})
+
+test('ausente: sem HOME nem USERPROFILE, não grava em undefined/ e avisa no log', async ($, on) => {
+  const m = await iniciar($, on, { env: { HOME: '', USERPROFILE: '' } })
+  const ui = await montar($, 'desktop')
+  await ui.press({ key: 'ausente' })
+  await ui.unmount()
+  expect([...m.arquivos.keys()].map(comBarra).some(k => k.includes('undefined'))).toBe(false)
+  expect(m.logs.some(l => l.includes('sem HOME nem USERPROFILE'))).toBe(true)
+})
+
 // ---- pedidos da página ----
 
 const pedido = (extra: Record<string, unknown> = {}) =>

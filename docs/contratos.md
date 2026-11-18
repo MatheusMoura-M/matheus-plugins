@@ -4,7 +4,7 @@ Os plugins não se importam entre si. Eles se encontram só por estes arquivos e
 
 ## Pasta de estado
 
-Tudo o que é de máquina (não de projeto) mora em `~/.claude/ichikawa/` (`$ICHIKAWA_HOME` sobrescreve, para teste). Nenhum plugin grava estado dentro do repositório do projeto.
+Tudo o que é de máquina (não de projeto) mora em `~/.claude/ichikawa/` (`$ICHIKAWA_HOME` sobrescreve, para teste). Nenhum plugin grava estado dentro do repositório do projeto. A `~` é o `HOME`; no Windows, onde o processo do app não tem `HOME`, é o `USERPROFILE` (`C:\Users\<você>`). Sem nenhum dos dois, a barra não grava nada e diz no log.
 
 | Caminho | Dono (quem grava) | Quem lê |
 |---|---|---|
