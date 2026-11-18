@@ -38,4 +38,4 @@ node --test 'hooks/tests/*.test.mjs' 'scripts/tests/*.test.mjs'
 node evals/casos.mjs --conferir   # as pastas de eval batem com a lista
 ```
 
-Os pacotes `@wicomm/tokens`, `@wicomm/guardas` e o registro moram no repositório do ateliê (`MatheusMoura-M/wicomm-atelie`); as cópias que os scripts carregam (`scripts/lib/`, `scripts/dados/tokens-wicomm.json`) não têm conferência automática aqui: quando o pacote mudar, recopie à mão.
+Os pacotes `@wicomm/tokens`, `@wicomm/guardas` e o registro vêm do ateliê, publicado em `https://wicomm-atelie.vercel.app`; o repositório do código-fonte dele não está ao alcance hoje (nem no GitHub do operador, nem no do kit original). As cópias que os scripts carregam (`scripts/lib/`, `scripts/dados/tokens-wicomm.json`) não têm conferência automática aqui: quando o pacote mudar, recopie à mão.

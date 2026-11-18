@@ -38,4 +38,4 @@ Proponha a peça nova **para o registro**, no formato:
 - **Onde aparece primeiro:** tela e região
 ```
 
-A proposta vai ao repositório do sistema (o repositório `MatheusMoura-M/wicomm-atelie`), não ao projeto. Até ela entrar, a tela usa a peça mais próxima do kit e a revisão registra a lacuna.
+A proposta vai ao sistema (o ateliê), não ao projeto. O repositório do ateliê não está ao alcance hoje: entregue a proposta ao operador, que a leva a quem mantém o registro. Até ela entrar, a tela usa a peça mais próxima do kit e a revisão registra a lacuna.
