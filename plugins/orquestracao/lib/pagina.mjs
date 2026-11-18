@@ -238,7 +238,7 @@ export function html(agora = Date.now()) {
 <link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
 <body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo">${BOTAO_DE_TEMAS}${BOTAO_DE_TEMA}<h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}</header>
 <main><div>${esquerda}</div><div>${direita}</div></main>
-<footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p><p class="assinatura">made by Ichikawa</p></footer>
+<footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p><p class="assinatura">made by Matheus</p></footer>
 ${GAVETA_DE_TEMAS}
 <script type="module">
 import { iniciarCeu } from '/ceu.js';

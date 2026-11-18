@@ -6,6 +6,8 @@ Os plugins não se importam entre si. Eles se encontram só por estes arquivos e
 
 Tudo o que é de máquina (não de projeto) mora em `~/.claude/matheus-plugins/` (`$MATHEUS_PLUGINS_HOME` sobrescreve, para teste). Nenhum plugin grava estado dentro do repositório do projeto. A `~` é o `HOME`; no Windows, onde o processo do app não tem `HOME`, é o `USERPROFILE` (`C:\Users\<você>`). Sem nenhum dos dois, a barra não grava nada e diz no log.
 
+**Vinda do kit original.** A pasta antes era `~/.claude/ichikawa/`. O orquestracao, na primeira vez que acha a pasta de estado (hook, CLI ou Painel, sem `$MATHEUS_PLUGINS_HOME`), move o que estava lá para a nova — pasta dos dois lados é mesclada, arquivo dos dois lados fica o mais novo — e deixa no lugar da antiga um link para a nova (junction no Windows). As sessões abertas antes do release, ainda na versão velha, gravam pelo link na pasta nova. O que não deu para mover (arquivo preso) fica para a próxima vez. A barra e a contas não migram: leem `ausente.json`, `tema.json`, `tema-do-app.json` e `tema-do-painel.json` da pasta antiga enquanto eles não estão na nova, e gravam só na nova. O link pode ser apagado depois que todas as sessões reiniciaram.
+
 | Caminho | Dono (quem grava) | Quem lê |
 |---|---|---|
 | `ausente.json` | `barra` | `orquestracao` |

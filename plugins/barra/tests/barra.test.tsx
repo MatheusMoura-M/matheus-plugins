@@ -289,7 +289,7 @@ for (const [caso, resposta] of [
       ferramenta: tool => (tool === 'mcp__Claude_Browser__preview_start' ? resposta : { text: 'ok' }),
     })
     const ui = await montar($, 'desktop')
-    await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
+    await ui.press({ key: 'orquestracao@matheus-plugins/perguntas' })
     expect(m.chamadas.find(c => c.tool === 'mcp__Claude_Browser__preview_start')?.url).toBe('http://127.0.0.1:4747')
     expect(m.rodadas).toContainEqual(['explorer.exe', 'http://127.0.0.1:4747'])
     expect(m.toasts).toEqual([])
