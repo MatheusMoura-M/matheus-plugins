@@ -40,7 +40,7 @@ Isso copia DESIGN, ANATOMIA e CONVENCOES para `design/` (e a cópia intocada par
 - `pecas`: `{}` (o `peca-do-kit` anota cada peça instalada)
 
 E no projeto:
-- **`.claude/settings.json`**: `extraKnownMarketplaces` com o marketplace `ichikawa-plugins` e `enabledPlugins: { "design-wicomm@ichikawa-plugins": true }` — o plugin só se liga no projeto interno da Wicomm, por este arquivo, nunca na conta. Quem abrir o projeto no Claude Code recebe o convite para instalar. Depois, a skill `design-wicomm:aplicar-tema` liga o projeto ao tema.
+- **`.claude/settings.json`**: `extraKnownMarketplaces` com o marketplace `matheus-plugins` e `enabledPlugins: { "design-wicomm@matheus-plugins": true }` — o plugin só se liga no projeto interno da Wicomm, por este arquivo, nunca na conta. Quem abrir o projeto no Claude Code recebe o convite para instalar. Depois, a skill `design-wicomm:aplicar-tema` liga o projeto ao tema.
 - **`CLAUDE.md`**: um bloco curto "Design system Wicomm" dizendo que toda tela nova passa pelo `designer` e pelo `critico-de-ui` (no ajuste de tela que já existe, a crítica é opcional), que a norma está em `design/`, e que a nota de 24/30 (28/35 em site) é a porta do PR (CONV-19, CONV-20).
 - **`docs/deploy.md`**: copie `${CLAUDE_PLUGIN_ROOT}/skills/novo-projeto/modelos/deploy.md` e troque `<app>`, `<pasta>` e `<time>` pelos do projeto. Diz que o deploy de produção é o da Vercel a cada push na `main` (os pacotes `@wicomm` vêm do npm público, sem token) e como conferir e voltar atrás.
 - **`components.json`** com o registro `@wicomm` em `registries`, quando o registro estiver publicado (veja o passo 4).

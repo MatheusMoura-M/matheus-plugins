@@ -1,4 +1,4 @@
-# ichikawa-plugins
+# matheus-plugins
 
 **Um time de sessões do Claude Code trabalhando por você, com processo de gente grande e um painel para você só decidir.**
 
@@ -269,7 +269,7 @@ Qualquer plugin ganha botão com um `barra.json` na raiz: `id`, `rotulo`, `coman
 > **Uso interno.** Este plugin traz a marca Wicomm, que não é licenciada. Ele é ligado só no `.claude/settings.json` de projetos internos da Wicomm, nunca na conta nem em app de cliente.
 
 ```json
-{ "enabledPlugins": { "design-wicomm@ichikawa-plugins": true } }
+{ "enabledPlugins": { "design-wicomm@matheus-plugins": true } }
 ```
 
 **O que faz.** Mantém os apps React internos com a mesma cara: a **base** diz como a tela parece e o que vai onde, o **designer** desenha antes do código, o **crítico** dá nota depois, e scripts medem quanto um app foge do padrão.
@@ -351,22 +351,31 @@ Tudo roda em `127.0.0.1`, sem dependência npm (Node ≥ 20, só macOS).
 ## Instalar e atualizar
 
 ```bash
-claude plugin marketplace add ichikawacraice/ichikawa-plugins
-claude plugin install orquestracao@ichikawa-plugins
-claude plugin install stack@ichikawa-plugins
-claude plugin install barra@ichikawa-plugins
-claude plugin install contas@ichikawa-plugins
+claude plugin marketplace add MatheusMoura-M/matheus-plugins
+claude plugin install orquestracao@matheus-plugins
+claude plugin install stack@matheus-plugins
+claude plugin install barra@matheus-plugins
+claude plugin install contas@matheus-plugins
 ```
 
 O `design-wicomm` não vai na conta: ele é ligado no `.claude/settings.json` do projeto interno (veja [acima](#design-wicomm)).
+
+**Vindo do kit original** (`ichikawacraice/ichikawa-plugins`): os plugins têm os mesmos nomes, então desinstale os de lá antes de instalar estes, para a mesma barra e os mesmos hooks não rodarem duas vezes:
+
+```bash
+claude plugin uninstall orquestracao@ichikawa-plugins
+claude plugin uninstall stack@ichikawa-plugins
+claude plugin uninstall barra@ichikawa-plugins
+claude plugin marketplace remove ichikawa-plugins
+```
 
 **Branches do kit.** A `develop` é o tronco, onde os PRs entram por squash. A `main` é o que as máquinas instalam. Neste repositório o release sai logo depois de cada PR mergeado. Não há `version` no `plugin.json`: a versão é o commit.
 
 **Atualizar** depois de um release:
 
 ```bash
-claude plugin marketplace update ichikawa-plugins
-claude plugin update orquestracao@ichikawa-plugins   # e cada plugin que mudou
+claude plugin marketplace update matheus-plugins
+claude plugin update orquestracao@matheus-plugins   # e cada plugin que mudou
 ```
 
 A sessão que já estava aberta só pega a versão nova ao reiniciar.

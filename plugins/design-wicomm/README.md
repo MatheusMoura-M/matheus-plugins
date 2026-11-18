@@ -7,7 +7,7 @@ O design system dos apps React **internos da Wicomm**, com a marca. Junta o `des
 No `.claude/settings.json` do projeto, nunca na conta:
 
 ```json
-{ "enabledPlugins": { "design-wicomm@ichikawa-plugins": true } }
+{ "enabledPlugins": { "design-wicomm@matheus-plugins": true } }
 ```
 
 App de cliente ou de fora da empresa não liga este plugin: a marca Wicomm não é licenciada ([`TERCEIROS.md`](TERCEIROS.md)).
