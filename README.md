@@ -418,6 +418,7 @@ node --test plugins/design-wicomm/hooks/tests/*.test.mjs plugins/design-wicomm/s
 claude plugin test plugins/barra
 ```
 
+- O teste da barra pede o `claude` do PATH no 2.1.325 ou mais novo (`claude --version`; `claude update` se estiver atrás): antes disso o motor não tem o `$.theme` e os testes do tema falham com `no loaded plugin provides $.theme`.
 - Validar um plugin: `claude plugin validate plugins/<nome>`.
 - Texto sempre em LF, inclusive no Windows com `core.autocrlf=true` (o `.gitattributes` manda): os scripts do `design-wicomm` leem o frontmatter com `\n` e o `bin/perguntas` é bash. Um checkout antigo em CRLF volta ao LF com `git rm --cached -r -q . && git reset --hard` (sem mudança pendente).
 - Release: com o gate verde, `git push origin <sha da develop>:refs/heads/main` (skill `orquestracao:release`).
