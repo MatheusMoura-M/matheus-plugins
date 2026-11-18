@@ -276,6 +276,27 @@ test('botões: no Windows, sem o navegador do app, abre pelo explorer.exe (não 
   await ui.unmount()
 })
 
+// No app em auto mode, o preview_start chamado pelo código do mod volta recusado ("Not run: in auto mode …"); outra
+// recusa ou erro do app dá no mesmo. A página abre no navegador do sistema, sem toast.
+for (const [caso, resposta] of [
+  ['recusa', { deny: "PreToolUse:mcp__Claude_Browser__preview_start hook error: Not run: in auto mode Claude Desktop doesn't run this tool when a plugin's own code calls it. Have Claude make the call." }],
+  ['erro', { isError: true, text: 'preview pane unavailable' }],
+] as const) {
+  test(`botões: com url, ${caso} do navegador do app abre no navegador do sistema, sem toast`, async ($, on) => {
+    const m = await iniciar($, on, {
+      arquivos: { [`${ORQ}/barra.json`]: BARRA_JSON_COM_URL },
+      env: { OS: 'Windows_NT' },
+      ferramenta: tool => (tool === 'mcp__Claude_Browser__preview_start' ? resposta : { text: 'ok' }),
+    })
+    const ui = await montar($, 'desktop')
+    await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
+    expect(m.chamadas.find(c => c.tool === 'mcp__Claude_Browser__preview_start')?.url).toBe('http://127.0.0.1:4747')
+    expect(m.rodadas).toContainEqual(['explorer.exe', 'http://127.0.0.1:4747'])
+    expect(m.toasts).toEqual([])
+    await ui.unmount()
+  })
+}
+
 test('botões: com url, comando que falha não abre navegador e avisa', async ($, on) => {
   const m = await iniciar($, on, {
     arquivos: { [`${ORQ}/barra.json`]: BARRA_JSON_COM_URL },

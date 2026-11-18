@@ -29,7 +29,7 @@ Só lê arquivos, roda os contadores declarados e lê `list_sessions` no máximo
 1. Fica na raiz do plugin, ao lado de `.claude-plugin/`: `{ "botoes": [ … ] }`.
 2. Cada botão: `id`, `rotulo`, `comando` (argv, sem shell), `ordem` (menor à esquerda); `icone` (um glifo), `dica`, `contador` e `url` são opcionais.
 3. `${CLAUDE_PLUGIN_ROOT}` em qualquer argumento vira a pasta do plugin dono.
-4. O clique roda o `comando` desacoplado; a barra não espera. Com `url` (só página local), espera o `comando` e abre a página no navegador do app; no terminal, no navegador do sistema.
+4. O clique roda o `comando` desacoplado; a barra não espera. Com `url` (só página local), espera o `comando` e abre a página no navegador do app; no terminal, ou quando o app recusa (em auto mode o app não roda a ferramenta que o código de um plugin chama) ou falha, no navegador do sistema, sem aviso.
 5. `contador` imprime um inteiro, mostrado como selo (`◫ Painel · 3`), rodado no máximo a cada 30 s com prazo de 3 s.
 
 O contrato completo está em [`docs/contratos.md`](../../docs/contratos.md).
@@ -39,3 +39,5 @@ O contrato completo está em [`docs/contratos.md`](../../docs/contratos.md).
 ```sh
 claude plugin test plugins/barra
 ```
+
+Pede o Claude Code 2.1.325 ou mais novo (`claude --version`): antes disso o motor não tem o `$.theme`, e os testes que usam o tema falham com `no loaded plugin provides $.theme`. Atualize com `claude update`.
