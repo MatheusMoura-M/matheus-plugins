@@ -117,9 +117,8 @@ async function pastaDeCasa($: EngineInterface): Promise<string> {
   return semBarraNoFim(casa)
 }
 
-/** A pasta de estado do kit (docs/contratos.md) e a do kit original, de onde o orquestracao migra o que havia. */
+/** A pasta de estado do kit (docs/contratos.md). */
 const PASTA_DO_KIT = 'matheus-plugins'
-const PASTA_DO_KIT_ANTIGA = 'ichikawa'
 
 async function pastaDoKit($: EngineInterface): Promise<string> {
   const propria = await $.env.get('MATHEUS_PLUGINS_HOME')
@@ -140,15 +139,9 @@ async function lerSeExiste($: EngineInterface, caminho: string): Promise<string 
   return (await $.fs.read(caminho)) as string
 }
 
-/**
- * Um arquivo da pasta do kit. Sem ele lá (barra sem o orquestracao, que é quem migra, ou antes da primeira migração), o
- * da pasta do kit original, `~/.claude/ichikawa`. A barra só grava na pasta nova.
- */
+/** Um arquivo da pasta do kit, ou null se não existe. */
 async function lerDoKit($: EngineInterface, nome: string): Promise<string | null> {
-  const lido = await lerSeExiste($, `${await pastaDoKit($)}/${nome}`)
-  if (lido !== null || (await $.env.get('MATHEUS_PLUGINS_HOME'))) return lido
-
-  return lerSeExiste($, `${await pastaDeCasa($)}/.claude/${PASTA_DO_KIT_ANTIGA}/${nome}`)
+  return lerSeExiste($, `${await pastaDoKit($)}/${nome}`)
 }
 
 // ---- ausente ----

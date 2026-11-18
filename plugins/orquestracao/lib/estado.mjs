@@ -4,38 +4,15 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
-import { avisoDaMigracao, migrarPastaAntiga, pastaEmUso } from './migracao.mjs';
 
 const PRAZO_DO_GIT_MS = 5_000;
 const TENTATIVAS_DE_NUMERO = 50;
 
-/** O nome da pasta de estado dentro de `~/.claude`, e o do kit original, de onde a migração traz o que havia. */
+/** O nome da pasta de estado dentro de `~/.claude`. */
 export const PASTA_DE_ESTADO = 'matheus-plugins';
-export const PASTA_DE_ESTADO_ANTIGA = 'ichikawa';
-const emUso = new Map();
 
-/**
- * A pasta de estado. Sem `MATHEUS_PLUGINS_HOME`, migra antes (uma vez por processo) a pasta do kit original; se a
- * migração não pôde ser feita, segue na antiga, para nunca haver duas pastas vivas para quem numera itens e perguntas.
- */
-export const raiz = () => {
-  const propria = process.env.MATHEUS_PLUGINS_HOME;
-  if (propria) return propria;
-  const nova = join(homedir(), '.claude', PASTA_DE_ESTADO);
-  if (!emUso.has(nova)) {
-    const antiga = join(homedir(), '.claude', PASTA_DE_ESTADO_ANTIGA);
-    const resultado = migrarPastaAntiga(antiga, nova);
-    const aviso = avisoDaMigracao(resultado, antiga, nova);
-    if (aviso) process.stderr.write(`${aviso}\n`);
-    avisoDaPastaAtual = aviso;
-    emUso.set(nova, pastaEmUso(resultado, antiga, nova));
-  }
-  return emUso.get(nova);
-};
-
-let avisoDaPastaAtual = null;
-/** O aviso da migração da pasta neste processo (null se não houve nada a avisar), para o início da sessão mostrar. */
-export const avisoDaPasta = () => { raiz(); return avisoDaPastaAtual; };
+/** A pasta de estado: `MATHEUS_PLUGINS_HOME`, ou `~/.claude/matheus-plugins`. */
+export const raiz = () => process.env.MATHEUS_PLUGINS_HOME || join(homedir(), '.claude', PASTA_DE_ESTADO);
 
 /** O nome do projeto: a pasta do repositório principal, igual em todos os worktrees. */
 export function nomeDoProjeto(cwd = process.cwd()) {

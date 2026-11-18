@@ -212,7 +212,7 @@ export function pidsEscutandoNaPorta(saida, porta) {
  */
 // Só caminhos e chaves de configuração, nunca o ambiente inteiro (que pode ter segredo e iria a disco no pedido). As pastas
 // do perfil entram porque a pasta de dados e a do app saem delas.
-export const VARIAVEIS_DO_SOLTO = ['CLAUDE_APP_DIR', 'TROCA_DE_CONTA_DIR', 'CLAUDE_CONFIG_DIR', 'ICHIKAWA_HOME', 'PAINEL_DE_CONTAS_PORTA', 'TROCA_SEM_CLONE', 'HOME', 'USERPROFILE', 'LOCALAPPDATA', 'APPDATA'];
+export const VARIAVEIS_DO_SOLTO = ['CLAUDE_APP_DIR', 'TROCA_DE_CONTA_DIR', 'CLAUDE_CONFIG_DIR', 'MATHEUS_PLUGINS_HOME', 'PAINEL_DE_CONTAS_PORTA', 'TROCA_SEM_CLONE', 'HOME', 'USERPROFILE', 'LOCALAPPDATA', 'APPDATA'];
 
 // `ShowWindow = 0` (SW_HIDE): sem ele o node nasce num console visível, e fechar essa janela mataria a troca no meio.
 const CRIAR = `$inicio = New-CimInstance -ClassName Win32_ProcessStartup -ClientOnly -Property @{ ShowWindow = [uint16]0 }

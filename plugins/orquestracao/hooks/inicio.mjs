@@ -21,8 +21,6 @@ export function contexto(entrada) {
   if (ausente) partes.push(`O operador está AUSENTE desde ${ausente.desde ?? '?'}: pergunte pela página (\`perguntas nova\`), não pare esperando no chat; siga com o que não depende dele.`);
   const novas = estado.listar('perguntas', projeto).filter((p) => p.estado === 'respondida' && p.lida === false);
   if (novas.length) partes.push(`Há ${novas.length} resposta(s) dada(s) pela página e não lida(s): rode \`perguntas novidades\`.`);
-  const pasta = estado.avisoDaPasta();
-  if (pasta) partes.push(`Conte ao operador na primeira resposta, em uma linha: ${pasta}`);
   return partes.join('\n\n');
 }
 

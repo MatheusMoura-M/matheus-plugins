@@ -6,15 +6,6 @@ Os plugins não se importam entre si. Eles se encontram só por estes arquivos e
 
 Tudo o que é de máquina (não de projeto) mora em `~/.claude/matheus-plugins/` (`$MATHEUS_PLUGINS_HOME` sobrescreve, para teste). Nenhum plugin grava estado dentro do repositório do projeto. A `~` é o `HOME`; no Windows, onde o processo do app não tem `HOME`, é o `USERPROFILE` (`C:\Users\<você>`). Sem nenhum dos dois, a barra não grava nada e diz no log.
 
-**Vinda do kit original.** A pasta antes era `~/.claude/ichikawa/`. O orquestracao (`lib/migracao.mjs`), na primeira vez que acha a pasta de estado num processo (hook, CLI ou Painel, sem `$MATHEUS_PLUGINS_HOME`):
-
-1. tira a antiga do caminho num rename só (ela vira `~/.claude/ichikawa.migrando-…`) e põe no lugar um link para a nova (junction no Windows). Daí em diante, as sessões abertas antes do release, ainda na versão velha, gravam pelo link na pasta nova;
-2. mescla a sobra na nova e apaga a sobra vazia. Nada se apaga: arquivo dos dois lados com o mesmo conteúdo sai da sobra; com conteúdo diferente, o mais novo fica no lugar e o outro vai para `migracao-conflitos/<mesmo caminho>` dentro da nova. Temporários de gravação pela metade (`*.tmp`) ficam de fora.
-
-Se a antiga não sai do caminho (arquivo aberto no Windows) ou o disco não aceita link, nada muda e o kit segue na antiga até a próxima sessão — nunca duas pastas vivas para quem numera itens e perguntas. Se a antiga já é link para outro lugar, o kit segue nela e não migra; se é um arquivo comum, não mexe nele e usa a nova. Arquivo movido nunca substitui o que já está na nova (link duro e depois apaga a origem). Quando a migração não terminou, ou quando um registro (item, pergunta, papel) foi para `migracao-conflitos/`, o aviso sai no stderr e no contexto do início da sessão, que o repassa ao operador. Conflito dos arquivos soltos da raiz (`tema.json`, `sessoes-do-app.json`…) não avisa: o mais novo no lugar já basta. A barra e a contas não migram: leem `ausente.json`, `tema.json`, `tema-do-app.json` e `tema-do-painel.json` da pasta antiga enquanto eles não estão na nova, e gravam só na nova.
-
-O link pode ser apagado depois que todas as sessões reiniciaram, com `cmd /c rmdir "%USERPROFILE%\.claude\ichikawa"` no Windows (sem `/s`) ou `rm ~/.claude/ichikawa` no macOS e Linux. No PowerShell 5.1, **não** use `Remove-Item -Recurse` no link: ele apaga o conteúdo da pasta nova.
-
 | Caminho | Dono (quem grava) | Quem lê |
 |---|---|---|
 | `ausente.json` | `barra` | `orquestracao` |

@@ -11,18 +11,8 @@ export const TEMA_PADRAO = 'escuro';
 const casa = (env) => env.HOME || homedir();
 const pastaDoKit = (env) => env.MATHEUS_PLUGINS_HOME || join(casa(env), '.claude', 'matheus-plugins');
 
-/**
- * Um arquivo da pasta do kit. Sem ele lá (contas sem o orquestracao, que é quem migra, ou antes da primeira migração), o
- * da pasta do kit original, `~/.claude/ichikawa`. As gravações vão só para a pasta nova.
- */
-async function lerDoKit(env, nome) {
-  try {
-    return await readFile(join(pastaDoKit(env), nome), 'utf8');
-  } catch (e) {
-    if (e?.code !== 'ENOENT' || env.MATHEUS_PLUGINS_HOME) throw e;
-    return readFile(join(casa(env), '.claude', 'ichikawa', nome), 'utf8');
-  }
-}
+/** Um arquivo da pasta do kit. */
+const lerDoKit = (env, nome) => readFile(join(pastaDoKit(env), nome), 'utf8');
 
 export async function lerTema(env) {
   try {

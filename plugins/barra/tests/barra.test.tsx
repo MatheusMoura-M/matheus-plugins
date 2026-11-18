@@ -589,18 +589,6 @@ test('tema: a escolha feita numa página aparece na leitura de 2 s', async ($, o
   await ui.unmount()
 })
 
-test('tema: sem tema.json na pasta nova, lê o da pasta do kit original; o clique grava só na nova', async ($, on) => {
-  const antiga = `${HOME}/.claude/ichikawa/tema.json`
-  const m = await iniciar($, on, { arquivos: { [antiga]: '{"tema": "claro"}' } })
-  const ui = await montar($, 'desktop')
-  expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#74b6ef')
-  await ui.press({ key: 'tema' })
-  await m.relogio.settle()
-  expect(JSON.parse(m.arquivos.get(`${KIT}/tema.json`) as string).tema).toBe('escuro')
-  expect(m.arquivos.get(antiga)).toBe('{"tema": "claro"}')
-  await ui.unmount()
-})
-
 test('tema: MATHEUS_PLUGINS_HOME troca a pasta', async ($, on) => {
   const m = await iniciar($, on, { env: { MATHEUS_PLUGINS_HOME: '/tmp/outra' } })
   const ui = await montar($, 'desktop')

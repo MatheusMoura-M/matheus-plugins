@@ -9,7 +9,7 @@ prints antes/depois no PR; PR mergeado na `develop`.
 ## De onde vem o status ao vivo
 
 Só o app enxerga `list_sessions`. A barra (mod, fora da conversa: zero contexto) grava
-`~/.claude/ichikawa/sessoes-do-app.json` a cada 60 s; a página só lê o arquivo.
+`~/.claude/matheus-plugins/sessoes-do-app.json` a cada 60 s; a página só lê o arquivo.
 
 - Várias sessões com a barra: quem acha o arquivo com menos de 50 s não regrava.
 - Gravação atômica (`.tmp` + `mv`). Falha da leitura do app não apaga o arquivo: a página mostra a idade da leitura.
