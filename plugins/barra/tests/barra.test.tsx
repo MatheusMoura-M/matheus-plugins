@@ -34,6 +34,9 @@ const INSTALADOS_JSON = JSON.stringify({
   },
 })
 
+/** A rodada que solta o comando pelo node (`argvDesacoplado`): [node, -e, script, ...comando]. */
+const solto = (a: string[]) => a[0] === 'node' && a[1] === '-e' && String(a[2]).includes('detached: true')
+
 function motor(on: On, opc: Opcoes = {}) {
   const arquivos = new Map<string, string>(Object.entries({
     [INSTALADOS]: INSTALADOS_JSON,
@@ -86,7 +89,7 @@ function motor(on: On, opc: Opcoes = {}) {
       for (const a of argv.slice(2)) arquivos.delete(a)
       return ok({ exitCode: 0 })
     }
-    if (argv[0] === '/bin/sh') return ok({ exitCode: 0 })
+    if (solto(argv)) return ok({ exitCode: 0 })
     const r = opc.contador?.(argv) ?? { exitCode: 0, stdout: '3\n' }
     if (r === 'trava') throw new Error('timeout')
     return ok(r)
@@ -214,8 +217,8 @@ test('botões: o clique roda o comando desacoplado, com a raiz trocada', async (
   const m = await iniciar($, on)
   const ui = await montar($, 'desktop')
   await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
-  const sh = m.rodadas.find(a => a[0] === '/bin/sh')
-  expect(sh?.slice(4)).toEqual(['node', `${ORQ}/bin/perguntas.mjs`, 'pagina', '--abrir'])
+  const sh = m.rodadas.find(solto)
+  expect(sh?.slice(3)).toEqual(['node', `${ORQ}/bin/perguntas.mjs`, 'pagina', '--abrir'])
   expect(m.toasts).toEqual([])
   await ui.unmount()
 })
@@ -229,7 +232,7 @@ test('botões: com url, espera o comando subir a página e abre no navegador do 
   const ui = await montar($, 'desktop')
   await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
   expect(m.rodadas).toContainEqual(['node', `${ORQ}/lib/cli.mjs`, 'pagina', '--subir'])
-  expect(m.rodadas.find(a => a[0] === '/bin/sh')).toBeUndefined()
+  expect(m.rodadas.find(solto)).toBeUndefined()
   const navegador = m.chamadas.find(c => c.tool === 'mcp__Claude_Browser__preview_start')
   expect(navegador?.url).toBe('http://127.0.0.1:4747')
   expect(m.rodadas.find(a => a[0] === 'open')).toBeUndefined()
@@ -249,6 +252,22 @@ test('botões: com url e sem o navegador do app (terminal), abre no navegador do
   await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
   expect(m.rodadas).toContainEqual(['open', 'http://127.0.0.1:4747'])
   expect(m.toasts).toEqual([])
+  await ui.unmount()
+})
+
+test('botões: no Windows, sem o navegador do app, abre pelo explorer.exe (não há open)', async ($, on) => {
+  const m = await iniciar($, on, {
+    arquivos: { [`${ORQ}/barra.json`]: BARRA_JSON_COM_URL },
+    env: { OS: 'Windows_NT' },
+    ferramenta: tool => {
+      if (tool === 'mcp__Claude_Browser__preview_start') throw new Error('no tool named mcp__Claude_Browser__preview_start')
+      return { text: 'ok' }
+    },
+  })
+  const ui = await montar($, 'terminal')
+  await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
+  expect(m.rodadas).toContainEqual(['explorer.exe', 'http://127.0.0.1:4747'])
+  expect(m.rodadas.find(a => a[0] === 'open')).toBeUndefined()
   await ui.unmount()
 })
 
