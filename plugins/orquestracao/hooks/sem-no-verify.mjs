@@ -3,7 +3,7 @@
 // a checagem que o projeto montou; o agente costuma usar para o commit passar em vez de consertar o que falhou.
 // Ideia absorvida do ECC (block-no-verify, MIT, affaan-m/ECC 2.2.3); aqui pergunta em vez de bloquear.
 import { fileURLToPath } from 'node:url';
-import { lerEntrada, responder, rodar } from './comum.mjs';
+import { ehGit, lerEntrada, responder, rodar } from './comum.mjs';
 
 const SEPARADORES = new Set(['&&', '||', ';', '|', '&', '\n']);
 const PROFUNDIDADE_MAXIMA = 2;
@@ -72,7 +72,7 @@ function checarGit(tokens, indiceDoGit) {
 export function achar(comando, fundo = 0) {
   for (const tokens of segmentos(comando)) {
     for (let i = 0; i < tokens.length; i++) {
-      if (tokens[i].split('/').pop() === 'git') {
+      if (ehGit(tokens[i])) {
         const achado = checarGit(tokens, i);
         if (achado) return achado;
       }
