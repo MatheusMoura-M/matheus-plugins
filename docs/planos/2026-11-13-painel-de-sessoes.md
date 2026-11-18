@@ -30,7 +30,7 @@ ferramenta, sem hook com saída: custo zero de contexto.
 - Uma linha por sessão do projeto atual (o da pasta da sessão; worktree conta como o projeto principal):
   - **ícone de status**: `●` trabalhando (verde), `◐` aguarda pergunta minha (âmbar, quando o item tem pergunta aberta),
     `○` parada (cinza), `✓` PR mergeado;
-  - título da sessão (já traz `ICH-F7 · tema`), etapa do item (de `~/.claude/ichikawa/itens/<projeto>/F*.json`) e PR;
+  - título da sessão (já traz `ICH-F7 · tema`), etapa do item (de `~/.claude/matheus-plugins/itens/<projeto>/F*.json`) e PR;
   - **tempo**: há quanto tempo foi a última atividade (`há 3 min`) e idade da sessão.
 - Clique na linha abre a sessão no app (`mcp__ccd_window__open_session_in`, chamado pelo mod).
 - Leitura: `list_sessions` + `get_session self` ao abrir e a cada 60 s **só enquanto o pane estiver aberto**; itens e

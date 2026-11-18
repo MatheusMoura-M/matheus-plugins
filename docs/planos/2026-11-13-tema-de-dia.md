@@ -20,7 +20,7 @@ acento **cobalto** no lugar do violeta, sol gigante. Paleta com tokens e hex: no
    - Página de perguntas: o servidor grava `data-ceu` pelo `lerAusente()` ao montar o HTML; o recarregamento de 30 s
      mantém em dia.
    - Painel de cotas: o servidor grava `data-ceu` no `index.html` ao servi-lo (lendo `ausente.json` em
-     `ICHIKAWA_HOME` ou `~/.claude/ichikawa`) e `GET /api/ceu` devolve o tema; o `app.js` confere a cada 10 s
+     `MATHEUS_PLUGINS_HOME` ou `~/.claude/matheus-plugins`) e `GET /api/ceu` devolve o tema; o `app.js` confere a cada 10 s
      (junto com as sessões) e ao voltar para a aba. Risco: não.
 5. **Cotas** (`cotas.css`): de dia, sem os brilhos (box-shadow/text-shadow) e barras de cota com preenchimento
    claro (o texto escuro fica por cima). Risco: não.

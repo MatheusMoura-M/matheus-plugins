@@ -6,8 +6,8 @@ Pronto quando: testes em `plugins/orquestracao/tests/` para 1–4, conferido na 
 
 ## Decisões
 
-- **Sigla derivada**: as 3 primeiras letras ou dígitos do nome, em maiúsculas (`Izanagi` → `IZA`, `ichikawa-plugins` → `ICH`, `WiControl` → `WIC`); nome curto completa com `X`.
-- **Configurável** em `~/.claude/ichikawa/siglas.json` (`{ "projeto": "SIG" }`), gravado por `perguntas sigla SIG [--projeto P]`. Recusa sigla que outro projeto já usa. `perguntas sigla --todas` lista todas e marca as que coincidem.
+- **Sigla derivada**: as 3 primeiras letras ou dígitos do nome, em maiúsculas (`Izanagi` → `IZA`, `matheus-plugins` → `MAT`, `WiControl` → `WIC`); nome curto completa com `X`.
+- **Configurável** em `~/.claude/matheus-plugins/siglas.json` (`{ "projeto": "SIG" }`), gravado por `perguntas sigla SIG [--projeto P]`. Recusa sigla que outro projeto já usa. `perguntas sigla --todas` lista todas e marca as que coincidem.
 - **O arquivo continua `F3.json`** e o campo `id` continua `F3`: a sigla é só de exibição e de entrada. Nada migra.
 - **O CLI aceita `F3` e `IZA-F3`** (e `IZA-Q3`). Com sigla e sem `--projeto`, a sigla escolhe o projeto (útil para a orquestradora de outra pasta); com `--projeto` e sigla de outro projeto, erro. `--item IZA-F3` grava `F3`.
 - *Assumida, a confirmar*: as perguntas também saem com a sigla (`IZA-Q3`), pelo mesmo motivo dos itens — `Q1` existe em todo projeto.

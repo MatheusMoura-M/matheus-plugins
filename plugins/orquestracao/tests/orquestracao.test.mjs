@@ -2,7 +2,7 @@ import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, rmSync, mkdtempSync, readdirSync, readFileSync, writeFileSync, mkdirSync, chmodSync, unlinkSync } from 'node:fs';
 import { tmpdir, homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import * as estado from '../lib/estado.mjs';
 import { main } from '../lib/cli.mjs';
 import { dados, html, servir, criarServidor, abrirPagina, pastaDoServidorDoKit, pidsEscutandoNaPorta, PASTA_DO_KIT } from '../lib/pagina.mjs';
@@ -489,13 +489,17 @@ test('console.log novo em código de produto avisa; teste, script, config, bin e
   assert.equal(avisoConsoleLog(edita('/repo/src/a.ts', '// console.log(1)\nconsole.error(2)')), null);
 });
 
-test('formatar roda o binário local só no arquivo editado, e só com configuração e sem o desligador', { skip: process.platform === 'win32' && 'o binário falso é um script sh' }, () => {
+test('formatar roda o binário local só no arquivo editado, e só com configuração e sem o desligador', () => {
   const projeto = mkdtempSync(join(tmpdir(), 'fmt-'));
-  mkdirSync(join(projeto, 'node_modules', '.bin'), { recursive: true });
   mkdirSync(join(projeto, 'src'));
   const registro = join(projeto, 'chamadas.txt');
-  const bin = join(projeto, 'node_modules', '.bin', 'prettier');
-  writeFileSync(bin, `#!/bin/sh\necho "$@" >> "${registro}"\n`);
+  // O binário falso é um script node, posto onde o hook procura nesta plataforma: no Windows, o script JS do pacote
+  // (rodado com o node); fora dele, o executável de node_modules/.bin.
+  const bin = process.platform === 'win32'
+    ? join(projeto, 'node_modules', 'prettier', 'bin', 'prettier.cjs')
+    : join(projeto, 'node_modules', '.bin', 'prettier');
+  mkdirSync(dirname(bin), { recursive: true });
+  writeFileSync(bin, `#!/usr/bin/env node\nrequire('node:fs').appendFileSync(${JSON.stringify(registro)}, process.argv.slice(2).join(' ') + '\\n');\n`);
   chmodSync(bin, 0o755);
   writeFileSync(join(projeto, 'src', 'a.ts'), 'x');
   const entrada = { tool_input: { file_path: join(projeto, 'src', 'a.ts') } };
@@ -504,7 +508,7 @@ test('formatar roda o binário local só no arquivo editado, e só com configura
   writeFileSync(join(projeto, '.prettierrc'), '{}');
   assert.equal(planoDeFormato(entrada, { MATHEUS_PLUGINS_FORMATAR: '0' }), null);
   assert.equal(formatar(entrada, {}), true);
-  assert.equal(readFileSync(registro, 'utf8').trim(), '--write src/a.ts');
+  assert.equal(readFileSync(registro, 'utf8').trim(), `--write ${join('src', 'a.ts')}`);
   assert.equal(planoDeFormato({ tool_input: { file_path: join(projeto, 'src', 'novo.ts') } }, {}), null, 'arquivo inexistente');
   writeFileSync(join(projeto, 'src', 'a.png'), 'x');
   assert.equal(planoDeFormato({ tool_input: { file_path: join(projeto, 'src', 'a.png') } }, {}), null, 'extensão que o formatador não cobre');

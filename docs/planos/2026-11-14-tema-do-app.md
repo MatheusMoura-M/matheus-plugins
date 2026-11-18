@@ -7,7 +7,7 @@
 - **Mora na `barra`.** Ela já lê o `tema.json` e tem o botão de claro/escuro; um plugin à parte duplicaria a leitura e o relógio.
 - **Cenas:** `hooks/fundo-noite.ts` e `hooks/fundo-dia.ts` montam o SVG (só CSS, sem script; até 131 072 caracteres). As cadentes sorteiam ponto, ângulo, lado e ciclo a cada carga (`Math.random`); o resto do céu é fixo.
 - **Paletas:** `hooks/paleta.ts` com `makeColors` (cópia sem mudança do `make-colors.js` da skill de mods do Claude Code). Noite só `dark` (quase preto com um fio de roxo); dia só `light` (quase branco com um fio de azul, texto azul-tinta `#1f3a5f`, que também é o primary do app). Papéis e git ficam os do app.
-- **Liga/desliga:** `tema-do-app.json` em `ICHIKAWA_HOME` (`{ "ligado": false, "em", "por" }`); sem arquivo, ilegível ou qualquer outro valor, **ligado**. Um para a máquina, como o `tema.json`.
+- **Liga/desliga:** `tema-do-app.json` em `MATHEUS_PLUGINS_HOME` (`{ "ligado": false, "em", "por" }`); sem arquivo, ilegível ou qualquer outro valor, **ligado**. Um para a máquina, como o `tema.json`.
 - **Aplicar:** a barra relê `tema.json` e `tema-do-app.json` a cada 2 s (antes, o tema era relido a cada 30 s) e chama `$.theme.set` com o look do céu, ou `$.theme.clear` quando desligado, só quando muda.
 - **Botão:** à esquerda do relógio do cache, só onde o tema se desenha (desktop e mobile; no terminal, não). Rótulo do que o clique faz: `◐ Desligar tema` / `◐ Ligar tema`.
 - **Páginas:** em `estilo.css` (base comum, cópia idêntica no `contas`), o primary do dia passa a `#b8dcf7` sólido, texto `#0d2443`, borda `rgba(13, 36, 67, 0.22)`, hover `#a6d2f4`.

@@ -406,8 +406,9 @@ test('lancar real: o processo recebe os argumentos, sai da sessão da página e 
   // A marca vai à pasta de dados pelo ambiente: no Windows o filho nasce pelo WMI e só leva as variáveis da troca.
   const marca = join(m.dados, 'argumentos.json');
   const script = join(m.raiz, 'cli-falso.mjs');
-  writeFileSync(script, `import { writeFileSync } from 'node:fs';\nimport { join } from 'node:path';\nconsole.log('saida-do-filho');\nwriteFileSync(join(process.env.TROCA_DE_CONTA_DIR, 'argumentos.json'), JSON.stringify({ argv: process.argv.slice(2), pid: process.pid, segredo: process.env.SEGREDO_DO_TESTE ?? null }));\nsetTimeout(() => {}, 3000);\n`);
-  const r = lancar({ comando: 'trocar', conta: CONTA_B, env: { ...m.env, SEGREDO_DO_TESTE: 'nao-pode-ir-a-disco' }, cli: script });
+  writeFileSync(script, `import { writeFileSync } from 'node:fs';\nimport { join } from 'node:path';\nconsole.log('saida-do-filho');\nwriteFileSync(join(process.env.TROCA_DE_CONTA_DIR, 'argumentos.json'), JSON.stringify({ argv: process.argv.slice(2), pid: process.pid, segredo: process.env.SEGREDO_DO_TESTE ?? null, kit: process.env.MATHEUS_PLUGINS_HOME ?? null }));\nsetTimeout(() => {}, 3000);\n`);
+  const kit = join(m.raiz, 'kit');
+  const r = lancar({ comando: 'trocar', conta: CONTA_B, env: { ...m.env, SEGREDO_DO_TESTE: 'nao-pode-ir-a-disco', MATHEUS_PLUGINS_HOME: kit }, cli: script });
   assert.equal(r.ok, true);
   assert.ok(Number.isInteger(r.andamento.pid) && r.andamento.pid !== process.pid);
   try {
@@ -420,6 +421,7 @@ test('lancar real: o processo recebe os argumentos, sai da sessão da página e 
     const lido = JSON.parse(readFileSync(marca, 'utf8'));
     assert.deepEqual(lido.argv, [CONTA_B]);
     assert.equal(lido.pid, r.andamento.pid);
+    assert.equal(lido.kit, kit, 'a pasta do kit chega ao filho (o tema da página da troca sai dela)');
     if (process.platform === 'win32') {
       // Pelo WMI o filho só leva as variáveis da troca: o resto do ambiente (que pode ter segredo) não vai ao pedido nem a ele.
       assert.equal(lido.segredo, null);
