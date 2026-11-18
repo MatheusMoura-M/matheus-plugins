@@ -1,4 +1,4 @@
-# ichikawa-plugins
+# matheus-plugins
 
 O kit de plugins (orquestracao, stack, barra, design-wicomm, contas). A `develop` é o tronco; a `main` é o que as máquinas instalam.
 
@@ -15,7 +15,7 @@ node --test plugins/design-wicomm/hooks/tests/*.test.mjs plugins/design-wicomm/s
 claude plugin test plugins/barra
 ```
 
-Verde: `git push origin <sha da develop>:refs/heads/main`, depois `claude plugin marketplace update ichikawa-plugins` e `claude plugin update <plugin>@ichikawa-plugins` de cada plugin que mudou. Sessão aberta antes do release só pega a versão nova ao reiniciar.
+Verde: `git push origin <sha da develop>:refs/heads/main`, depois `claude plugin marketplace update matheus-plugins` e `claude plugin update <plugin>@matheus-plugins` de cada plugin que mudou. Sessão aberta antes do release só pega a versão nova ao reiniciar.
 
 ## Documentação junto com o código
 

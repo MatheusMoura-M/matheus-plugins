@@ -44,7 +44,7 @@ Conhecimento da stack da empresa em um plugin só: React/TypeScript, Next.js, No
 
 - Node 20.18.1 ou mais novo e `npx` (o pacote `@upstash/context7-mcp` exige `node >= 20.18.1`) e acesso à internet para o Context7.
 - Para `stack:deploy` nos exemplos de Google Cloud: `gcloud` instalado e autenticado. Nada roda sozinho; os comandos são para você ou a sessão executarem com o ok do operador.
-- Os plugins `orquestracao@ichikawa-plugins` e `supabase@claude-plugins-official` completam o que as skills apontam, mas não são exigidos.
+- Os plugins `orquestracao@matheus-plugins` e `supabase@claude-plugins-official` completam o que as skills apontam, mas não são exigidos.
 
 ## Fontes e licenças
 
