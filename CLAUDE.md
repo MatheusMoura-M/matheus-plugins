@@ -15,6 +15,8 @@ node --test plugins/design-wicomm/hooks/tests/*.test.mjs plugins/design-wicomm/s
 claude plugin test plugins/barra
 ```
 
+O teste da barra roda no `claude` do PATH (`~/.local/bin`), que nesta máquina não se atualiza sozinho (`autoUpdates: false` no `~/.claude.json`), e não no do app. Antes do gate, `claude update`: um CLI anterior ao 2.1.325 não tem o `$.theme` e derruba 45 dos 75 testes com `no loaded plugin provides $.theme` (medido no MAT-F5: 2.1.310 vermelho; 2.1.326 do app e 2.1.327 verdes).
+
 Verde: `git push origin <sha da develop>:refs/heads/main`, depois `claude plugin marketplace update matheus-plugins` e `claude plugin update <plugin>@matheus-plugins` de cada plugin que mudou. Sessão aberta antes do release só pega a versão nova ao reiniciar.
 
 ## Documentação junto com o código
