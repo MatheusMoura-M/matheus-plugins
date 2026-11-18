@@ -74,16 +74,17 @@ function motor(on: On, opc: Opcoes = {}) {
   on('process.run', (_, e) => {
     const argv = [...e.argv]
     rodadas.push(argv)
-    if (argv[0] === 'mkdir') return ok({ exitCode: 0 })
-    if (argv[0] === 'mv') {
-      const t = arquivos.get(argv[1] as string)
-      if (opc.mvFalha || t === undefined) return ok({ exitCode: 1, stderr: 'No such file' })
-      arquivos.delete(argv[1] as string)
-      arquivos.set(argv[2] as string, t)
-      return ok({ exitCode: 0 })
-    }
-    if (argv[0] === 'rm') {
-      for (const a of argv.slice(2)) arquivos.delete(a)
+    // Mover e apagar vão pelo node (`argvParaMover`, `argvParaApagar`): [node, -e, script, op, ...caminhos].
+    if (argv[0] === 'node' && argv[1] === '-e' && (argv[3] === 'mover' || argv[3] === 'apagar')) {
+      const [op, de, para] = argv.slice(3) as [string, string, string | undefined]
+      if (op === 'apagar') {
+        arquivos.delete(de)
+        return ok({ exitCode: 0 })
+      }
+      const t = arquivos.get(de)
+      if (opc.mvFalha || t === undefined || para === undefined) return ok({ exitCode: 1, stderr: 'ENOENT' })
+      arquivos.delete(de)
+      arquivos.set(para, t)
       return ok({ exitCode: 0 })
     }
     if (argv[0] === '/bin/sh') return ok({ exitCode: 0 })
@@ -136,6 +137,8 @@ const montar = ($: Parameters<TestBody>[0], surface: (typeof SUPERFICIES)[number
 const textos = async (ui: { findAll: (q: object) => Promise<Array<{ text: string }>> }) => (await ui.findAll({})).map(x => x.text).join('\n')
 /** A leitura das sessões para a página, que roda em toda sessão: não conta como ação dos pedidos. */
 const LEITURA_DO_APP = /list_sessions|get_session/
+/** A rodada que move `de` para `para` pelo node (`argvParaMover`). */
+const moveu = (a: string[]) => a[0] === 'node' && a[1] === '-e' && a[3] === 'mover'
 const turno = (extra: Record<string, unknown> = {}) => ({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer', ...extra }) as never
 
 // ---- cache ----
@@ -334,7 +337,7 @@ test('pedidos: responder a outra sessão manda send_message e apaga o pedido', a
   const envio = m.chamadas.find(c => c.tool === 'mcp__ccd_session_mgmt__send_message')
   expect(envio?.session_id).toBe('local_outra')
   expect(envio?.message).toBe('Pode apagar.')
-  expect(m.rodadas.some(a => a[0] === 'mv' && a[2] === `${ICH}/pedidos/tomados/p1.json`), 'tomou por mv').toBe(true)
+  expect(m.rodadas.some(a => moveu(a) && a[5] === `${ICH}/pedidos/tomados/p1.json`), 'tomou por rename').toBe(true)
   expect([...m.arquivos.keys()].filter(k => k.includes('/pedidos/'))).toEqual([])
 })
 
@@ -392,7 +395,7 @@ test('pedidos: sem a pasta não lê nada além de conferir que ela não existe',
   const m = await iniciar($, on)
   const antes = m.rodadas.length
   await m.relogio.advance(5_000)
-  expect(m.rodadas.filter(a => a[0] === 'mv' || a[0] === 'mkdir').length).toBe(0)
+  expect(m.rodadas.filter(moveu).length).toBe(0)
   expect(m.rodadas.length).toBe(antes)
 })
 
@@ -429,7 +432,7 @@ test('sessões: ao abrir e a cada 60 s grava sessoes-do-app.json com a própria 
   expect(gravado.sessoes.map((s: { sessionId: string }) => s.sessionId)).toEqual([EU, 'local_f7'])
   expect(gravado.sessoes[1]).toMatchObject({ isRunning: true, prNumber: 9, prState: 'OPEN', link: 'claude://x/local_f7' })
   expect(gravado.sessoes[1].group).toBeUndefined()
-  expect(m.rodadas.some(a => a[0] === 'mv' && String(a[1]).endsWith('.tmp') && a[2] === ARQ_SESSOES)).toBe(true)
+  expect(m.rodadas.some(a => moveu(a) && String(a[4]).endsWith('.tmp') && a[5] === ARQ_SESSOES)).toBe(true)
   expect([...m.arquivos.keys()].some(k => k.endsWith('.tmp'))).toBe(false)
   await m.relogio.advance(61_000)
   expect(lidas(m)).toBe(2)

@@ -11,6 +11,7 @@ import {
   FONTES_DE_SETTINGS,
   PEDIDOS_INTERVALO_MS,
   argvDesacoplado,
+  argvParaMover,
   lerAusente,
   lerBarraJson,
   lerContador,
@@ -382,8 +383,8 @@ export async function gravarSessoes($: EngineInterface): Promise<void> {
     const propria = lerSessoes(jsonDaFerramenta(eu))
     const temp = `${destino}.${propria[0]?.sessionId ?? 'barra'}.tmp`
     await $.fs.write(temp, textoDoArquivo(juntarSessoes(propria, lerSessoes(bruto)), await $.clock.now(), propria[0]?.sessionId ?? null))
-    const r = await $.process.run(['mv', temp, destino], { timeoutMs: CONTADOR_PRAZO_MS })
-    if (r.exitCode !== 0) throw new Error(r.stderr.trim() || `mv saiu com ${r.exitCode}`)
+    const r = await $.process.run(argvParaMover(temp, destino), { timeoutMs: CONTADOR_PRAZO_MS })
+    if (r.exitCode !== 0) throw new Error(r.stderr.trim() || `o rename saiu com ${r.exitCode}`)
     erroDasSessoes = ''
   } catch (err) {
     // O mesmo erro a cada minuto vai ao log uma vez só.
