@@ -4,11 +4,11 @@ import type { TestBody } from 'claude-code/testing'
 
 // HOME temporário em memória: nada toca o ~/.claude real.
 const HOME = '/tmp/home-teste'
-const ICH = `${HOME}/.claude/ichikawa`
+const KIT = `${HOME}/.claude/matheus-plugins`
 const INSTALADOS = `${HOME}/.claude/plugins/installed_plugins.json`
 const PROJETO = '/work/projeto'
-const ORQ = `${HOME}/.claude/plugins/cache/ichikawa/orquestracao/1.0.0`
-const CONTAS = `${HOME}/.claude/plugins/cache/ichikawa/contas/1.0.0`
+const ORQ = `${HOME}/.claude/plugins/cache/matheus-plugins/orquestracao/1.0.0`
+const CONTAS = `${HOME}/.claude/plugins/cache/matheus-plugins/contas/1.0.0`
 const EU = 'local_eu'
 const AGORA = Date.UTC(2026, 10, 14, 0, 15)
 
@@ -29,8 +29,8 @@ const BARRA_JSON_CONTAS = JSON.stringify({ botoes: [{ id: 'contas', rotulo: 'Con
 const INSTALADOS_JSON = JSON.stringify({
   version: 2,
   plugins: {
-    'orquestracao@ichikawa': [{ scope: 'user', installPath: ORQ, version: '1.0.0' }],
-    'contas@ichikawa': [{ scope: 'project', projectPath: PROJETO, installPath: CONTAS, version: '1.0.0' }],
+    'orquestracao@matheus-plugins': [{ scope: 'user', installPath: ORQ, version: '1.0.0' }],
+    'contas@matheus-plugins': [{ scope: 'project', projectPath: PROJETO, installPath: CONTAS, version: '1.0.0' }],
   },
 })
 
@@ -44,7 +44,7 @@ function motor(on: On, opc: Opcoes = {}) {
     [`${CONTAS}/barra.json`]: BARRA_JSON_CONTAS,
     ...opc.arquivos,
   }))
-  const settings = opc.settings ?? { user: { enabledPlugins: { 'orquestracao@ichikawa': true } }, project: { enabledPlugins: { 'contas@ichikawa': true } } }
+  const settings = opc.settings ?? { user: { enabledPlugins: { 'orquestracao@matheus-plugins': true } }, project: { enabledPlugins: { 'contas@matheus-plugins': true } } }
   const relogio = mock.clock(on, { now: AGORA })
   mock.env(on, { HOME, CLAUDE_CODE_HOST_SESSION_ID: EU, ...opc.env })
   on('session.start', (_, e) => ({ cwd: e.cwd }))
@@ -196,9 +196,9 @@ test('botões: os dois plugins ligados aparecem na ordem do barra.json, com o se
 test('botões: plugin desligado numa fonte de maior precedência não aparece', async ($, on) => {
   await iniciar($, on, {
     settings: {
-      user: { enabledPlugins: { 'orquestracao@ichikawa': true } },
-      project: { enabledPlugins: { 'contas@ichikawa': true } },
-      local: { enabledPlugins: { 'orquestracao@ichikawa': false } },
+      user: { enabledPlugins: { 'orquestracao@matheus-plugins': true } },
+      project: { enabledPlugins: { 'contas@matheus-plugins': true } },
+      local: { enabledPlugins: { 'orquestracao@matheus-plugins': false } },
     },
   })
   const ui = await montar($, 'desktop')
@@ -221,7 +221,7 @@ test('botões: instalação de projeto vale só no próprio projeto', async ($, 
 test('botões: o clique roda o comando desacoplado, com a raiz trocada', async ($, on) => {
   const m = await iniciar($, on)
   const ui = await montar($, 'desktop')
-  await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
+  await ui.press({ key: 'orquestracao@matheus-plugins/perguntas' })
   const sh = m.rodadas.find(solto)
   expect(sh?.slice(3)).toEqual(['node', `${ORQ}/bin/perguntas.mjs`, 'pagina', '--abrir'])
   expect(m.toasts).toEqual([])
@@ -235,7 +235,7 @@ const BARRA_JSON_COM_URL = JSON.stringify({
 test('botões: com url, espera o comando subir a página e abre no navegador do app', async ($, on) => {
   const m = await iniciar($, on, { arquivos: { [`${ORQ}/barra.json`]: BARRA_JSON_COM_URL } })
   const ui = await montar($, 'desktop')
-  await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
+  await ui.press({ key: 'orquestracao@matheus-plugins/perguntas' })
   expect(m.rodadas).toContainEqual(['node', `${ORQ}/lib/cli.mjs`, 'pagina', '--subir'])
   expect(m.rodadas.find(solto)).toBeUndefined()
   const navegador = m.chamadas.find(c => c.tool === 'mcp__Claude_Browser__preview_start')
@@ -254,7 +254,7 @@ test('botões: com url e sem o navegador do app (terminal), abre no navegador do
     },
   })
   const ui = await montar($, 'terminal')
-  await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
+  await ui.press({ key: 'orquestracao@matheus-plugins/perguntas' })
   expect(m.rodadas).toContainEqual(['open', 'http://127.0.0.1:4747'])
   expect(m.toasts).toEqual([])
   await ui.unmount()
@@ -270,7 +270,7 @@ test('botões: no Windows, sem o navegador do app, abre pelo explorer.exe (não 
     },
   })
   const ui = await montar($, 'terminal')
-  await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
+  await ui.press({ key: 'orquestracao@matheus-plugins/perguntas' })
   expect(m.rodadas).toContainEqual(['explorer.exe', 'http://127.0.0.1:4747'])
   expect(m.rodadas.find(a => a[0] === 'open')).toBeUndefined()
   await ui.unmount()
@@ -303,7 +303,7 @@ test('botões: com url, comando que falha não abre navegador e avisa', async ($
     contador: argv => (argv.includes('--subir') ? { exitCode: 1, stderr: 'porta ocupada' } : { exitCode: 0, stdout: '3' }),
   })
   const ui = await montar($, 'desktop')
-  await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
+  await ui.press({ key: 'orquestracao@matheus-plugins/perguntas' })
   expect(m.chamadas.find(c => c.tool === 'mcp__Claude_Browser__preview_start')).toBeUndefined()
   expect(m.toasts.join('\n')).toMatch(/porta ocupada/)
   await ui.unmount()
@@ -340,12 +340,12 @@ test('ausente: o clique liga gravando o contrato, e o seguinte desliga', async (
   let ui = await montar($, 'desktop')
   await ui.press({ key: 'ausente' })
   await ui.unmount()
-  expect(JSON.parse(m.arquivos.get(`${ICH}/ausente.json`) as string)).toEqual({ ligado: true, desde: '2026-11-13T21:15:00-03:00', por: 'barra' })
+  expect(JSON.parse(m.arquivos.get(`${KIT}/ausente.json`) as string)).toEqual({ ligado: true, desde: '2026-11-13T21:15:00-03:00', por: 'barra' })
   ui = await montar($, 'desktop')
   expect(await textos(ui)).toMatch(/Estou de volta/)
   await ui.press({ key: 'ausente' })
   await ui.unmount()
-  expect(JSON.parse(m.arquivos.get(`${ICH}/ausente.json`) as string).ligado).toBe(false)
+  expect(JSON.parse(m.arquivos.get(`${KIT}/ausente.json`) as string).ligado).toBe(false)
   ui = await montar($, 'terminal')
   expect(await textos(ui)).toMatch(/Ficar ausente/)
   await ui.unmount()
@@ -353,15 +353,15 @@ test('ausente: o clique liga gravando o contrato, e o seguinte desliga', async (
 
 test('ausente: o arquivo gravado por outra sessão aparece na leitura de 30 s', async ($, on) => {
   const m = await iniciar($, on)
-  m.arquivos.set(`${ICH}/ausente.json`, '{"ligado": true, "desde": "2026-11-13T20:00:00-03:00", "por": "orquestracao"}')
+  m.arquivos.set(`${KIT}/ausente.json`, '{"ligado": true, "desde": "2026-11-13T20:00:00-03:00", "por": "orquestracao"}')
   await m.relogio.advance(30_000)
   const ui = await montar($, 'desktop')
   expect(await textos(ui)).toMatch(/Estou de volta/)
   await ui.unmount()
 })
 
-test('ausente: ICHIKAWA_HOME troca a pasta', async ($, on) => {
-  const m = await iniciar($, on, { env: { ICHIKAWA_HOME: '/tmp/outra/' } })
+test('ausente: MATHEUS_PLUGINS_HOME troca a pasta', async ($, on) => {
+  const m = await iniciar($, on, { env: { MATHEUS_PLUGINS_HOME: '/tmp/outra/' } })
   const ui = await montar($, 'desktop')
   await ui.press({ key: 'ausente' })
   await ui.unmount()
@@ -377,7 +377,7 @@ test('ausente: sem HOME (Windows), a pasta sai do USERPROFILE', async ($, on) =>
   await ui.press({ key: 'ausente' })
   await ui.unmount()
   const gravados = [...m.arquivos.keys()].map(comBarra)
-  expect(gravados.some(k => k.endsWith('/Users/x/.claude/ichikawa/ausente.json'))).toBe(true)
+  expect(gravados.some(k => k.endsWith('/Users/x/.claude/matheus-plugins/ausente.json'))).toBe(true)
   expect(gravados.some(k => k.includes('undefined'))).toBe(false)
 })
 
@@ -396,24 +396,24 @@ const pedido = (extra: Record<string, unknown> = {}) =>
   JSON.stringify({ tipo: 'responder', sessao: 'local_outra', texto: 'Pode apagar.', criadoEm: new Date(AGORA - 60_000).toISOString(), ...extra })
 
 test('pedidos: responder a outra sessão manda send_message e apaga o pedido', async ($, on) => {
-  const m = await iniciar($, on, { arquivos: { [`${ICH}/pedidos/p1.json`]: pedido() } })
+  const m = await iniciar($, on, { arquivos: { [`${KIT}/pedidos/p1.json`]: pedido() } })
   await m.relogio.advance(5_000)
   const envio = m.chamadas.find(c => c.tool === 'mcp__ccd_session_mgmt__send_message')
   expect(envio?.session_id).toBe('local_outra')
   expect(envio?.message).toBe('Pode apagar.')
-  expect(m.rodadas.some(a => moveu(a) && a[5] === `${ICH}/pedidos/tomados/p1.json`), 'tomou por rename').toBe(true)
+  expect(m.rodadas.some(a => moveu(a) && a[5] === `${KIT}/pedidos/tomados/p1.json`), 'tomou por rename').toBe(true)
   expect([...m.arquivos.keys()].filter(k => k.includes('/pedidos/'))).toEqual([])
 })
 
 test('pedidos: responder à própria sessão vira prompt, sem send_message', async ($, on) => {
-  const m = await iniciar($, on, { arquivos: { [`${ICH}/pedidos/p1.json`]: pedido({ sessao: EU }) } })
+  const m = await iniciar($, on, { arquivos: { [`${KIT}/pedidos/p1.json`]: pedido({ sessao: EU }) } })
   await m.relogio.advance(5_000)
   expect(m.prompts).toEqual(['Pode apagar.'])
   expect(m.chamadas.some(c => c.tool === 'mcp__ccd_session_mgmt__send_message')).toBe(false)
 })
 
 test('pedidos: outra sessão tomou antes (mv falha): nada é enviado', async ($, on) => {
-  const m = await iniciar($, on, { arquivos: { [`${ICH}/pedidos/p1.json`]: pedido() }, mvFalha: true })
+  const m = await iniciar($, on, { arquivos: { [`${KIT}/pedidos/p1.json`]: pedido() }, mvFalha: true })
   await m.relogio.advance(5_000)
   expect(m.chamadas.filter(c => !LEITURA_DO_APP.test(String(c.tool))).length).toBe(0)
   expect(m.prompts.length).toBe(0)
@@ -422,32 +422,32 @@ test('pedidos: outra sessão tomou antes (mv falha): nada é enviado', async ($,
 test('pedidos: vencido ou inválido vai para falhos com o motivo, sem executar', async ($, on) => {
   const m = await iniciar($, on, {
     arquivos: {
-      [`${ICH}/pedidos/velho.json`]: pedido({ criadoEm: new Date(AGORA - 31 * 60_000).toISOString() }),
-      [`${ICH}/pedidos/ruim.json`]: pedido({ tipo: 'apagar' }),
+      [`${KIT}/pedidos/velho.json`]: pedido({ criadoEm: new Date(AGORA - 31 * 60_000).toISOString() }),
+      [`${KIT}/pedidos/ruim.json`]: pedido({ tipo: 'apagar' }),
     },
   })
   await m.relogio.advance(5_000)
   expect(m.chamadas.filter(c => !LEITURA_DO_APP.test(String(c.tool))).length).toBe(0)
-  expect(JSON.parse(m.arquivos.get(`${ICH}/pedidos/falhos/velho.json`) as string).motivo).toBe('vencido (mais de 30 min)')
-  expect(JSON.parse(m.arquivos.get(`${ICH}/pedidos/falhos/ruim.json`) as string).motivo).toMatch(/tipo desconhecido/)
-  expect(m.arquivos.has(`${ICH}/pedidos/tomados/velho.json`)).toBe(false)
+  expect(JSON.parse(m.arquivos.get(`${KIT}/pedidos/falhos/velho.json`) as string).motivo).toBe('vencido (mais de 30 min)')
+  expect(JSON.parse(m.arquivos.get(`${KIT}/pedidos/falhos/ruim.json`) as string).motivo).toMatch(/tipo desconhecido/)
+  expect(m.arquivos.has(`${KIT}/pedidos/tomados/velho.json`)).toBe(false)
 })
 
 test('pedidos: envio recusado vai para falhos com o texto do app', async ($, on) => {
   const m = await iniciar($, on, {
-    arquivos: { [`${ICH}/pedidos/p1.json`]: pedido() },
+    arquivos: { [`${KIT}/pedidos/p1.json`]: pedido() },
     ferramenta: () => ({ isError: true, text: 'session not found' }),
   })
   await m.relogio.advance(5_000)
-  expect(JSON.parse(m.arquivos.get(`${ICH}/pedidos/falhos/p1.json`) as string).motivo).toBe('session not found')
+  expect(JSON.parse(m.arquivos.get(`${KIT}/pedidos/falhos/p1.json`) as string).motivo).toBe('session not found')
 })
 
 test('pedidos: abrir-sessao chama open_session_in com focus ("self" quando é a própria)', async ($, on) => {
   const criadoEm = new Date(AGORA - 1000).toISOString()
   const m = await iniciar($, on, {
     arquivos: {
-      [`${ICH}/pedidos/a.json`]: JSON.stringify({ tipo: 'abrir-sessao', sessao: 'local_outra', criadoEm }),
-      [`${ICH}/pedidos/b.json`]: JSON.stringify({ tipo: 'abrir-sessao', sessao: EU, criadoEm }),
+      [`${KIT}/pedidos/a.json`]: JSON.stringify({ tipo: 'abrir-sessao', sessao: 'local_outra', criadoEm }),
+      [`${KIT}/pedidos/b.json`]: JSON.stringify({ tipo: 'abrir-sessao', sessao: EU, criadoEm }),
     },
   })
   await m.relogio.advance(5_000)
@@ -465,12 +465,12 @@ test('pedidos: sem a pasta não lê nada além de conferir que ela não existe',
 
 // ---- sessões para a página ----
 
-const ARQ_SESSOES = `${ICH}/sessoes-do-app.json`
+const ARQ_SESSOES = `${KIT}/sessoes-do-app.json`
 const LISTA = JSON.stringify([
-  { sessionId: 'local_f7', title: 'ICH-F7 · Entregues', cwd: `${PROJETO}/.claude/worktrees/w`, isRunning: true, prNumber: 9, prState: 'OPEN', lastActivityAt: new Date(AGORA - 180_000).toISOString(), link: 'claude://x/local_f7', group: null },
+  { sessionId: 'local_f7', title: 'KIT-F7 · Entregues', cwd: `${PROJETO}/.claude/worktrees/w`, isRunning: true, prNumber: 9, prState: 'OPEN', lastActivityAt: new Date(AGORA - 180_000).toISOString(), link: 'claude://x/local_f7', group: null },
   { sessionId: EU, title: 'repetida' },
 ])
-const EU_JSON = JSON.stringify({ sessionId: EU, title: 'ICH-F8 · Painel', cwd: PROJETO, originCwd: PROJETO, isRunning: true, model: 'x' })
+const EU_JSON = JSON.stringify({ sessionId: EU, title: 'KIT-F8 · Painel', cwd: PROJETO, originCwd: PROJETO, isRunning: true, model: 'x' })
 const ferramentaDoApp = (tool: string) => {
   if (tool === 'mcp__ccd_session_mgmt__list_sessions') return { text: LISTA }
   if (tool === 'mcp__ccd_session_mgmt__get_session') return { text: EU_JSON }
@@ -523,7 +523,7 @@ test('sessões: a lista do app falhou: o arquivo antigo fica e o erro vai ao log
 const estrelas = async (ui: { findAll: (q: object) => Promise<Array<{ text: string }>> }) =>
   (await ui.findAll({ type: 'Text' })).map(x => x.text).find(t => /[·✦⋆]/.test(t) && !/⧗/.test(t)) ?? ''
 
-const CLARO = { [`${ICH}/tema.json`]: '{"tema": "claro", "em": "2026-11-13T09:00:00-03:00", "por": "painel"}' }
+const CLARO = { [`${KIT}/tema.json`]: '{"tema": "claro", "em": "2026-11-13T09:00:00-03:00", "por": "painel"}' }
 
 test('céu: tema claro gravado — fundo azul, cena do sol entre o relógio e os botões no desktop, nuvens no terminal', async ($, on) => {
   await iniciar($, on, { arquivos: CLARO })
@@ -549,8 +549,8 @@ test('céu: tema claro gravado — fundo azul, cena do sol entre o relógio e os
 
 const ESCUROS: Array<[string, Record<string, string>]> = [
   ['sem tema.json', {}],
-  ['com o ausente ligado', { [`${ICH}/ausente.json`]: '{"ligado": true}' }],
-  ['com tema.json ilegível', { [`${ICH}/tema.json`]: 'lixo' }],
+  ['com o ausente ligado', { [`${KIT}/ausente.json`]: '{"ligado": true}' }],
+  ['com tema.json ilegível', { [`${KIT}/tema.json`]: 'lixo' }],
 ]
 for (const [caso, arquivos] of ESCUROS) {
   test(`céu: ${caso} é o escuro — fundo do painel, lua no desktop, estrelas no terminal`, async ($, on) => {
@@ -571,11 +571,11 @@ test('tema: o clique troca na hora e grava o tema.json; o seguinte volta', async
   const ui = await montar($, 'desktop')
   await ui.press({ key: 'tema' })
   await m.relogio.settle()
-  expect(JSON.parse(m.arquivos.get(`${ICH}/tema.json`) as string)).toEqual({ tema: 'claro', em: '2026-11-13T21:15:00-03:00', por: 'barra' })
+  expect(JSON.parse(m.arquivos.get(`${KIT}/tema.json`) as string)).toEqual({ tema: 'claro', em: '2026-11-13T21:15:00-03:00', por: 'barra' })
   expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#74b6ef')
   await ui.press({ key: 'tema' })
   await m.relogio.settle()
-  expect(JSON.parse(m.arquivos.get(`${ICH}/tema.json`) as string).tema).toBe('escuro')
+  expect(JSON.parse(m.arquivos.get(`${KIT}/tema.json`) as string).tema).toBe('escuro')
   expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#030014')
   await ui.unmount()
 })
@@ -583,14 +583,26 @@ test('tema: o clique troca na hora e grava o tema.json; o seguinte volta', async
 test('tema: a escolha feita numa página aparece na leitura de 2 s', async ($, on) => {
   const m = await iniciar($, on)
   const ui = await montar($, 'desktop')
-  m.arquivos.set(`${ICH}/tema.json`, '{"tema": "claro"}')
+  m.arquivos.set(`${KIT}/tema.json`, '{"tema": "claro"}')
   await m.relogio.advance(2_000)
   expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#74b6ef')
   await ui.unmount()
 })
 
-test('tema: ICHIKAWA_HOME troca a pasta', async ($, on) => {
-  const m = await iniciar($, on, { env: { ICHIKAWA_HOME: '/tmp/outra' } })
+test('tema: sem tema.json na pasta nova, lê o da pasta do kit original; o clique grava só na nova', async ($, on) => {
+  const antiga = `${HOME}/.claude/ichikawa/tema.json`
+  const m = await iniciar($, on, { arquivos: { [antiga]: '{"tema": "claro"}' } })
+  const ui = await montar($, 'desktop')
+  expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#74b6ef')
+  await ui.press({ key: 'tema' })
+  await m.relogio.settle()
+  expect(JSON.parse(m.arquivos.get(`${KIT}/tema.json`) as string).tema).toBe('escuro')
+  expect(m.arquivos.get(antiga)).toBe('{"tema": "claro"}')
+  await ui.unmount()
+})
+
+test('tema: MATHEUS_PLUGINS_HOME troca a pasta', async ($, on) => {
+  const m = await iniciar($, on, { env: { MATHEUS_PLUGINS_HOME: '/tmp/outra' } })
   const ui = await montar($, 'desktop')
   await ui.press({ key: 'tema' })
   await m.relogio.settle()
@@ -608,7 +620,7 @@ test('ícones: todo botão abre com um glifo — o do barra.json, ou o padrão',
 })
 
 test('céu: no terminal as estrelas cintilam a cada segundo; com BARRA_SEM_ANIMACAO ficam paradas', async ($, on) => {
-  const m = await iniciar($, on, { arquivos: { [`${ICH}/ausente.json`]: '{"ligado": true}' } })
+  const m = await iniciar($, on, { arquivos: { [`${KIT}/ausente.json`]: '{"ligado": true}' } })
   const ui = await montar($, 'terminal')
   const vistos = new Set<string>()
   for (let i = 0; i < 4; i++) {
@@ -620,7 +632,7 @@ test('céu: no terminal as estrelas cintilam a cada segundo; com BARRA_SEM_ANIMA
 })
 
 test('céu: menos movimento pedido deixa as estrelas paradas e o SVG sem animação', async ($, on) => {
-  const m = await iniciar($, on, { env: { BARRA_SEM_ANIMACAO: '1' }, arquivos: { [`${ICH}/ausente.json`]: '{"ligado": true}' } })
+  const m = await iniciar($, on, { env: { BARRA_SEM_ANIMACAO: '1' }, arquivos: { [`${KIT}/ausente.json`]: '{"ligado": true}' } })
   const ui = await montar($, 'terminal')
   const antes = await estrelas(ui)
   await m.relogio.advance(3000)
@@ -632,7 +644,7 @@ test('céu: menos movimento pedido deixa as estrelas paradas e o SVG sem animaç
 })
 
 test('céu: o "Reduzir movimento" do macOS também para', async ($, on) => {
-  const m = await iniciar($, on, { arquivos: { [`${ICH}/ausente.json`]: '{"ligado": true}' }, contador: argv => (argv[0] === 'defaults' ? { exitCode: 0, stdout: '1\n' } : { exitCode: 0, stdout: '3\n' }) })
+  const m = await iniciar($, on, { arquivos: { [`${KIT}/ausente.json`]: '{"ligado": true}' }, contador: argv => (argv[0] === 'defaults' ? { exitCode: 0, stdout: '1\n' } : { exitCode: 0, stdout: '3\n' }) })
   const ui = await montar($, 'terminal')
   const antes = await estrelas(ui)
   await m.relogio.advance(2000)
@@ -659,22 +671,22 @@ test('tema do app: a barra não tem o botão; desligado por uma página, limpa e
   const ui = await montar($, 'desktop')
   expect(await ui.find({ key: 'tema-do-app' }), 'o liga/desliga fica nas páginas').toBeUndefined()
   expect(await ui.find({ type: 'Svg' }), 'a cena da barra segue').toBeDefined()
-  m.arquivos.set(`${ICH}/tema-do-app.json`, '{"ligado": false, "por": "painel"}')
+  m.arquivos.set(`${KIT}/tema-do-app.json`, '{"ligado": false, "por": "painel"}')
   await m.relogio.advance(2_000)
   expect(m.temas).toEqual(['noite-do-kit', 'limpo'])
   await ui.press({ key: 'tema' })
   await m.relogio.settle()
   expect(m.temas, 'desligado, o clique do tema não aplica nada').toEqual(['noite-do-kit', 'limpo'])
-  m.arquivos.set(`${ICH}/tema-do-app.json`, '{"ligado": true, "por": "cotas"}')
+  m.arquivos.set(`${KIT}/tema-do-app.json`, '{"ligado": true, "por": "cotas"}')
   await m.relogio.advance(2_000)
   expect(m.temas).toEqual(['noite-do-kit', 'limpo', 'dia-do-kit'])
   await ui.unmount()
 })
 
 test('tema do app: desligado no arquivo, abre sem aplicar nem limpar; ligado por outra sessão, aplica em 2 s', async ($, on) => {
-  const m = await iniciar($, on, { arquivos: { [`${ICH}/tema-do-app.json`]: '{"ligado": false}' } })
+  const m = await iniciar($, on, { arquivos: { [`${KIT}/tema-do-app.json`]: '{"ligado": false}' } })
   expect(m.temas, 'não apaga o tema de outro plugin ao abrir').toEqual([])
-  m.arquivos.set(`${ICH}/tema-do-app.json`, '{"ligado": true}')
+  m.arquivos.set(`${KIT}/tema-do-app.json`, '{"ligado": true}')
   await m.relogio.advance(2_000)
   expect(m.temas).toEqual(['noite-do-kit'])
 })

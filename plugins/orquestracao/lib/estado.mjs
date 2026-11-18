@@ -1,14 +1,76 @@
 // O estado de máquina do kit: perguntas, itens e o modo ausente, um arquivo por registro
 // (contrato em docs/contratos.md). Nada aqui grava dentro do repositório do projeto.
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readFileSync, readdirSync, writeFileSync, renameSync } from 'node:fs';
+import { lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmdirSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 
 const PRAZO_DO_GIT_MS = 5_000;
 const TENTATIVAS_DE_NUMERO = 50;
 
-export const raiz = () => process.env.ICHIKAWA_HOME || join(homedir(), '.claude', 'ichikawa');
+/** O nome da pasta de estado dentro de `~/.claude`, e o do kit original, de onde a migração traz o que havia. */
+export const PASTA_DE_ESTADO = 'matheus-plugins';
+export const PASTA_DE_ESTADO_ANTIGA = 'ichikawa';
+const migradas = new Set();
+
+/** A pasta de estado. Sem `MATHEUS_PLUGINS_HOME`, traz antes (uma vez por processo) o que estava na pasta antiga. */
+export const raiz = () => {
+  const propria = process.env.MATHEUS_PLUGINS_HOME;
+  if (propria) return propria;
+  const nova = join(homedir(), '.claude', PASTA_DE_ESTADO);
+  if (!migradas.has(nova)) {
+    migradas.add(nova);
+    migrarPastaAntiga(join(homedir(), '.claude', PASTA_DE_ESTADO_ANTIGA), nova);
+  }
+  return nova;
+};
+
+/**
+ * Move o que está em `antiga` para `nova` e deixa no lugar da antiga um link para a nova (junction no Windows, que não
+ * pede administrador): sessões abertas antes do release, ainda na versão velha, gravam pelo link na pasta nova.
+ * Pasta dos dois lados é mesclada; arquivo dos dois lados, fica o mais novo. Uma entrada presa (arquivo aberto no
+ * Windows) não para as outras: o que sobrou fica para a próxima vez. Nunca lança.
+ * @returns {'sem-antiga'|'ja-migrada'|'migrada'|'parcial'}
+ */
+export function migrarPastaAntiga(antiga, nova) {
+  let info;
+  try { info = lstatSync(antiga); } catch { return 'sem-antiga'; }
+  if (info.isSymbolicLink() || !info.isDirectory()) return 'ja-migrada';
+  try {
+    mkdirSync(nova, { recursive: true });
+    mesclar(antiga, nova);
+    if (!apagarSeVazia(antiga)) return 'parcial';
+    symlinkSync(nova, antiga, 'junction');
+    return 'migrada';
+  } catch {
+    return 'parcial';
+  }
+}
+
+function mesclar(de, para) {
+  for (const nome of readdirSync(de)) {
+    const origem = join(de, nome);
+    const destino = join(para, nome);
+    try {
+      const o = lstatSync(origem);
+      let d = null;
+      try { d = lstatSync(destino); } catch { /* não existe na nova */ }
+      if (!d) renameSync(origem, destino);
+      else if (o.isDirectory() && d.isDirectory()) mesclar(origem, destino);
+      else if (o.isFile() && d.isFile() && o.mtimeMs > d.mtimeMs) renameSync(origem, destino);
+      else if (o.isFile() && d.isFile()) unlinkSync(origem);
+    } catch { /* fica para a próxima */ }
+  }
+}
+
+/** Apaga a pasta se, tirando as subpastas vazias, nada sobrou nela. */
+function apagarSeVazia(pasta) {
+  for (const nome of readdirSync(pasta)) {
+    const dentro = join(pasta, nome);
+    if (!lstatSync(dentro).isDirectory() || !apagarSeVazia(dentro)) return false;
+  }
+  try { rmdirSync(pasta); return true; } catch { return false; }
+}
 
 /** O nome do projeto: a pasta do repositório principal, igual em todos os worktrees. */
 export function nomeDoProjeto(cwd = process.cwd()) {

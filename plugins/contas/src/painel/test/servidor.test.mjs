@@ -52,7 +52,7 @@ test('o céu segue só o tema.json: escuro sem escolha (o ausente não muda nada
   try {
     assert.match((await pedir(s.porta, '/')).texto, /<html lang="pt-BR" data-ceu="noite" data-tema-do-app="ligado" data-tema-do-painel="ligado">/);
     assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite', temaDoApp: 'ligado', temaDoPainel: 'ligado' });
-    const pasta = join(m.home, '.claude', 'ichikawa');
+    const pasta = join(m.home, '.claude', 'matheus-plugins');
     mkdirSync(pasta, { recursive: true });
     writeFileSync(join(pasta, 'ausente.json'), '{"ligado":false}');
     assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite', temaDoApp: 'ligado', temaDoPainel: 'ligado' }, 'o ausente desligado não traz mais o dia');
@@ -83,7 +83,7 @@ test('POST /api/tema grava a escolha com a guarda das ações; valor desconhecid
   const s = await subir(m.env);
   const postar = (corpo, cabecalhos = { 'x-painel-de-contas': '1' }) =>
     fetch(`http://127.0.0.1:${s.porta}/api/tema`, { method: 'POST', headers: { 'content-type': 'application/json', ...cabecalhos }, body: JSON.stringify(corpo) });
-  const arquivo = join(m.home, '.claude', 'ichikawa', 'tema.json');
+  const arquivo = join(m.home, '.claude', 'matheus-plugins', 'tema.json');
   try {
     assert.equal((await postar({ tema: 'claro' }, {})).status, 403, 'sem o cabeçalho do painel');
     assert.equal(existsSync(arquivo), false);
@@ -105,7 +105,7 @@ test('POST /api/tema-do-app grava o liga/desliga com a guarda das ações; o que
   const s = await subir(m.env);
   const postar = (corpo, cabecalhos = { 'x-painel-de-contas': '1' }) =>
     fetch(`http://127.0.0.1:${s.porta}/api/tema-do-app`, { method: 'POST', headers: { 'content-type': 'application/json', ...cabecalhos }, body: JSON.stringify(corpo) });
-  const arquivo = join(m.home, '.claude', 'ichikawa', 'tema-do-app.json');
+  const arquivo = join(m.home, '.claude', 'matheus-plugins', 'tema-do-app.json');
   try {
     assert.match((await pedir(s.porta, '/')).texto, /data-tema-do-app="ligado"/, 'sem arquivo, ligado');
     assert.equal((await postar({ ligado: false }, {})).status, 403, 'sem o cabeçalho do painel');
@@ -126,7 +126,7 @@ test('POST /api/tema-do-painel grava o liga/desliga; a tela sai com a gaveta e o
   const s = await subir(m.env);
   const postar = (corpo, cabecalhos = { 'x-painel-de-contas': '1' }) =>
     fetch(`http://127.0.0.1:${s.porta}/api/tema-do-painel`, { method: 'POST', headers: { 'content-type': 'application/json', ...cabecalhos }, body: JSON.stringify(corpo) });
-  const arquivo = join(m.home, '.claude', 'ichikawa', 'tema-do-painel.json');
+  const arquivo = join(m.home, '.claude', 'matheus-plugins', 'tema-do-painel.json');
   try {
     const tela = (await pedir(s.porta, '/')).texto;
     assert.match(tela, /<dialog class="gaveta" id="gaveta-temas"[^]*<\/dialog>\n<\/body>/, 'a gaveta no fim do corpo');
@@ -193,7 +193,7 @@ test('painel-de-contas na porta do painel de outra versão: encerra o antigo e p
   const r = await principal({
     argv: ['--porta', String(porta), '--sem-abrir'], env: m.env, saida: () => {}, erro: () => {},
     troca: {
-      processos: () => [{ pid: 4242, comando: `node /cache/ichikawa-plugins/contas/d288e84/src/painel/cli.mjs --porta ${porta} --sem-abrir` }],
+      processos: () => [{ pid: 4242, comando: `node /cache/matheus-plugins/contas/d288e84/src/painel/cli.mjs --porta ${porta} --sem-abrir` }],
       encerrar: (pid) => { encerrados.push(pid); velho.close(); velho.closeAllConnections(); },
     },
   });

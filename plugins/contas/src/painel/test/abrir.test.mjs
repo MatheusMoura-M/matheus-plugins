@@ -79,7 +79,7 @@ test('o barra.json abre no navegador do app: url na porta padrão e o bin só so
 });
 
 // ICH-F23: depois de atualizar o plugin, o servidor da versão anterior seguia vivo na porta e o botão reaproveitava-o.
-const PASTA_VELHA = '/Users/x/.claude/plugins/cache/ichikawa-plugins/contas/d288e84abcde';
+const PASTA_VELHA = '/Users/x/.claude/plugins/cache/matheus-plugins/contas/d288e84abcde';
 const comandoDoPainel = (pasta) => `/opt/homebrew/bin/node ${pasta}/src/painel/cli.mjs --porta 4791 --sem-abrir`;
 
 test('a linha de comando prova o servidor do painel, no cache ou no repositório', () => {

@@ -496,7 +496,7 @@ export async function abrirPagina(porta = PORTA_PADRAO, {
     subir(porta);
     await esperarAte(async () => Boolean(await saude(porta)), prazoMs);
   }
-  if (navegador && !process.env.ICHIKAWA_SEM_NAVEGADOR) {
+  if (navegador && !process.env.MATHEUS_PLUGINS_SEM_NAVEGADOR) {
     const abridor = { darwin: 'open', win32: 'explorer.exe' }[process.platform];
     if (abridor) spawn(abridor, [url], { detached: true, stdio: 'ignore' }).unref();
   }
