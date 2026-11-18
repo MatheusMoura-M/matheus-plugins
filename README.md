@@ -135,7 +135,7 @@ O aviso de modo ausente fica no topo. O botão do canto esquerdo abre a gaveta d
 
 ### O CLI `perguntas`
 
-Entra no PATH das sessões com o plugin ligado. Os ids levam a sigla do projeto (`IZA-F7`, `IZA-Q12`); o CLI aceita com ou sem a sigla.
+Entra no PATH das sessões com o plugin ligado: no bash (macOS, Linux, Git Bash) pelo `bin/perguntas` e, no Windows, também no PowerShell e no cmd, pelo `bin/perguntas.cmd`. Os ids levam a sigla do projeto (`IZA-F7`, `IZA-Q12`); o CLI aceita com ou sem a sigla.
 
 ```bash
 perguntas nova --titulo T --caso C --se-nao S --recomendacao R --item IZA-F7   # imprime IZA-Q12
