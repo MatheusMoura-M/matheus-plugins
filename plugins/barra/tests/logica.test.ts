@@ -2,6 +2,8 @@ import { expect, test } from 'claude-code/testing'
 
 import {
   argvDesacoplado,
+  argvParaApagar,
+  argvParaMover,
   instalacaoAqui,
   isoSaoPaulo,
   iconeValido,
@@ -125,6 +127,15 @@ test('argvDesacoplado: o comando vai como "$@", sem ser interpretado pelo shell'
   const argv = argvDesacoplado(['node', '/r/a b.mjs', '; rm -rf /'])
   expect(argv.slice(0, 4)).toEqual(['/bin/sh', '-c', 'nohup "$@" </dev/null >/dev/null 2>&1 &', 'barra'])
   expect(argv.slice(4)).toEqual(['node', '/r/a b.mjs', '; rm -rf /'])
+})
+
+test('argvParaMover e argvParaApagar: pelo node, sem mv/rm/mkdir (que o Windows não tem), caminhos como argumentos', () => {
+  const mover = argvParaMover('C:\\a b\\x.tmp', '/c/d; rm -rf /')
+  expect(mover.slice(0, 2)).toEqual(['node', '-e'])
+  expect(mover.slice(3)).toEqual(['mover', 'C:\\a b\\x.tmp', '/c/d; rm -rf /'])
+  expect(argvParaApagar('/p/q.json').slice(3)).toEqual(['apagar', '/p/q.json'])
+  expect(mover[2]).toBe(argvParaApagar('x')[2])
+  for (const argv of [mover, argvParaApagar('x')]) expect(argv.some(a => /^(mv|rm|mkdir)$/.test(a))).toBe(false)
 })
 
 test('cache: relógio mm:ss, moldura aos 20 e 10 min, nenhuma com o turno rodando', () => {

@@ -238,6 +238,26 @@ export const argvDesacoplado = (comando: readonly string[]): string[] => [
   ...comando,
 ]
 
+// ---- mover e apagar arquivo ----
+// O `$.fs` do motor lê, grava (criando as pastas) e lista, mas não renomeia nem apaga; e `mv`, `rm` e `mkdir` não existem
+// no Windows. O node existe nos dois sistemas (os comandos do kit rodam nele): os caminhos vão como argumentos, sem shell.
+
+const SCRIPT_DE_ARQUIVOS = [
+  "const fs = require('node:fs'), path = require('node:path')",
+  'const [op, de, para] = process.argv.slice(1)',
+  'try {',
+  "  if (op === 'mover') { fs.mkdirSync(path.dirname(para), { recursive: true }); fs.renameSync(de, para) }",
+  "  else if (op === 'apagar') fs.rmSync(de, { force: true })",
+  "  else throw new Error('operação desconhecida: ' + op)",
+  '} catch (err) { process.stderr.write(String(err && err.message || err)); process.exitCode = 1 }',
+].join('\n')
+
+/** Renomeia `de` para `para` (atômico: de duas sessões, só uma consegue), criando a pasta de `para` se faltar. */
+export const argvParaMover = (de: string, para: string): string[] => ['node', '-e', SCRIPT_DE_ARQUIVOS, 'mover', de, para]
+
+/** Apaga o arquivo; ausente não é erro. */
+export const argvParaApagar = (caminho: string): string[] => ['node', '-e', SCRIPT_DE_ARQUIVOS, 'apagar', caminho]
+
 // ---- pedidos da página (pedidos/<uuid>.json) ----
 
 export const PEDIDOS_INTERVALO_MS = 5_000

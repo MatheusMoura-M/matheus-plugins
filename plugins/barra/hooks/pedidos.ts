@@ -5,7 +5,7 @@
 import type { EngineInterface } from 'claude-code'
 
 import type { Pedido } from '../types'
-import { NOME_DO_PEDIDO, PEDIDO_GRAVANDO_MS, lerPedido } from './logica'
+import { NOME_DO_PEDIDO, PEDIDO_GRAVANDO_MS, argvParaApagar, argvParaMover, lerPedido } from './logica'
 
 const PRAZO_FS_MS = 5_000
 const PRAZO_ENVIO_MS = 60_000
@@ -20,16 +20,15 @@ export const pastasDosPedidos = (base: string): Pastas => ({
   falhos: `${base}/pedidos/falhos`,
 })
 
-/** O mv atômico (rename): de duas sessões, só uma consegue; a outra vê o arquivo sumir. */
+/** O rename atômico: de duas sessões, só uma consegue; a outra vê o arquivo sumir. */
 async function tomar($: EngineInterface, p: Pastas, nome: string): Promise<boolean> {
-  await $.process.run(['mkdir', '-p', p.tomados], { timeoutMs: PRAZO_FS_MS })
-  const r = await $.process.run(['mv', `${p.pedidos}/${nome}`, `${p.tomados}/${nome}`], { timeoutMs: PRAZO_FS_MS })
+  const r = await $.process.run(argvParaMover(`${p.pedidos}/${nome}`, `${p.tomados}/${nome}`), { timeoutMs: PRAZO_FS_MS })
 
   return r.exitCode === 0
 }
 
 async function apagar($: EngineInterface, caminho: string): Promise<void> {
-  await $.process.run(['rm', '-f', caminho], { timeoutMs: PRAZO_FS_MS })
+  await $.process.run(argvParaApagar(caminho), { timeoutMs: PRAZO_FS_MS })
 }
 
 /** Grava o pedido em `falhos/` com o motivo e tira o original (de `pedidos/` ou de `tomados/`). */

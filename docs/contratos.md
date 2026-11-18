@@ -122,7 +122,7 @@ O tema das duas páginas (Painel e contas): ligado, o céu e o vidro; desligado,
 { "lidoEm": "ISO-8601", "por": "local_…", "sessoes": [ { "sessionId": "local_…", "title": "ICH-F7 · tema", "cwd": "…", "originCwd": "…", "isArchived": false, "isRunning": true, "prNumber": 12, "prState": "OPEN", "lastActivityAt": "ISO-8601", "link": "claude://…" } ] }
 ```
 
-O status ao vivo das sessões, que só o app enxerga. O mod da barra de toda sessão aberta, a cada 60 s, lê `list_sessions` (até 50) e a própria sessão (`get_session self`, que a lista não traz, vem primeiro) e grava por cima, de forma atômica (`.tmp` e `mv`). Arquivo com `lidoEm` de menos de 50 s: não lê de novo (outra sessão acabou de gravar). Falha da leitura não apaga o arquivo. A página casa a sessão com o item pelo `sessao` do item; quando esse id não está na lista ou está arquivado (gravado com o id do transcript, ou a dona foi reaberta), vale a sessão aberta do mesmo projeto cujo título começa pelo código do item (`IZA-F48 · …`, ICH-F38). Com `lidoEm` de mais de 3 min, ela só mostra a idade e não deduz parada nem "rodando". Nada disso entra no contexto do modelo.
+O status ao vivo das sessões, que só o app enxerga. O mod da barra de toda sessão aberta, a cada 60 s, lê `list_sessions` (até 50) e a própria sessão (`get_session self`, que a lista não traz, vem primeiro) e grava por cima, de forma atômica (`.tmp` e rename, pelo `node`: o mod não tem rename próprio e o Windows não tem `mv`). Arquivo com `lidoEm` de menos de 50 s: não lê de novo (outra sessão acabou de gravar). Falha da leitura não apaga o arquivo. A página casa a sessão com o item pelo `sessao` do item; quando esse id não está na lista ou está arquivado (gravado com o id do transcript, ou a dona foi reaberta), vale a sessão aberta do mesmo projeto cujo título começa pelo código do item (`IZA-F48 · …`, ICH-F38). Com `lidoEm` de mais de 3 min, ela só mostra a idade e não deduz parada nem "rodando". Nada disso entra no contexto do modelo.
 
 ### `pedidos/<uuid>.json`
 
@@ -132,7 +132,7 @@ O navegador não alcança as ferramentas do app; o mod da `barra` alcança. A p�
 { "tipo": "abrir-sessao", "sessao": "local_…", "texto": null, "criadoEm": "ISO-8601" }
 ```
 
-`tipo`: `responder` (manda `texto` à sessão como mensagem) · `abrir-sessao` (foca a sessão da pergunta; a página não grava mais esse pedido desde a ICH-F34, porque o app só foca a própria sessão — a barra ainda o aceita). O mod toma o pedido renomeando-o para `pedidos/tomados/` (só um mod ganha), executa e apaga; falha vai a `pedidos/falhos/` com o motivo. Pedido de mais de 30 min é descartado.
+`tipo`: `responder` (manda `texto` à sessão como mensagem) · `abrir-sessao` (foca a sessão da pergunta; a página não grava mais esse pedido desde a ICH-F34, porque o app só foca a própria sessão — a barra ainda o aceita). O mod toma o pedido renomeando-o para `pedidos/tomados/` (só um mod ganha; o rename e o apagar vão pelo `node`, iguais no macOS e no Windows), executa e apaga; falha vai a `pedidos/falhos/` com o motivo. Pedido de mais de 30 min é descartado.
 
 Pedido vencido ou inválido também vai a `falhos/` com o motivo (fica o rastro). O nome do arquivo segue `[A-Za-z0-9_-]+.json` e `sessao` segue `local_[A-Za-z0-9-]+`. **Limite do app:** `abrir-sessao` usa `open_session_in` com `target: "focus"`, que só mostra a própria sessão (`self`) ou uma que a sessão que tomou o pedido abriu, e só age com essa sessão na tela; fora disso o app diz que não mudou nada e o mod registra o texto no log.
 
