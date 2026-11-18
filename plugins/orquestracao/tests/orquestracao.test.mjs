@@ -5,7 +5,7 @@ import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import * as estado from '../lib/estado.mjs';
 import { main } from '../lib/cli.mjs';
-import { dados, html, servir, criarServidor, abrirPagina, pastaDoServidorDoKit, PASTA_DO_KIT } from '../lib/pagina.mjs';
+import { dados, html, servir, criarServidor, abrirPagina, pastaDoServidorDoKit, pidsEscutandoNaPorta, PASTA_DO_KIT } from '../lib/pagina.mjs';
 import { createServer } from 'node:http';
 import { decidir as orquestradoraNaoEdita } from '../hooks/orquestradora-nao-edita.mjs';
 import { decidir as configProtegida } from '../hooks/config-protegida.mjs';
@@ -746,8 +746,8 @@ async function servidorFalso(porta, corpo) {
 
 /** Roda `abrirPagina` com um servidor falso na porta e devolve o que ele encerrou e se subiu outro. */
 async function abrirSobre(corpo, comando) {
-  const porta = 4800 + Math.floor(Math.random() * 500);
-  const falso = await servidorFalso(porta, corpo);
+  const falso = await servidorFalso(0, corpo); // porta 0: o sistema dá uma livre (a sorteada colidia com outro programa)
+  const porta = falso.address().port;
   const r = { encerrados: [], subiu: false, avisos: [] };
   let novo;
   try {
@@ -780,6 +780,28 @@ test('a linha de comando prova o servidor da página do kit, no cache ou no repo
   assert.equal(pastaDoServidorDoKit('python3 -m http.server 4747'), null);
   assert.equal(pastaDoServidorDoKit('node /repo/plugins/orquestracao/lib/cli.mjs nova --titulo x'), null);
   assert.equal(pastaDoServidorDoKit('node /outro/app/lib/cli.mjs pagina'), null);
+});
+
+test('a linha de comando do Windows também prova o servidor do kit', () => {
+  const velha = 'C:\\Users\\m\\.claude\\plugins\\cache\\ichikawa-plugins\\orquestracao\\1.2.3';
+  assert.equal(pastaDoServidorDoKit(`"C:\\Program Files\\nodejs\\node.exe" "${velha}\\lib\\cli.mjs" pagina --porta 4747`), velha);
+  assert.equal(pastaDoServidorDoKit(`node.exe ${velha}\\lib\\cli.mjs pagina`), velha);
+  assert.equal(pastaDoServidorDoKit('"C:\\Python\\python.exe" -m http.server 4747'), null);
+  assert.equal(pastaDoServidorDoKit('"C:\\Program Files\\nodejs\\node.exe" "C:\\app\\lib\\cli.mjs" pagina'), null);
+});
+
+test('netstat: só quem escuta (LISTENING) na porta pedida', () => {
+  const saida = [
+    '  TCP    127.0.0.1:4747         0.0.0.0:0              LISTENING       1234',
+    '  TCP    0.0.0.0:4747           0.0.0.0:0              LISTENING       1234',
+    '  TCP    0.0.0.0:47470          0.0.0.0:0              LISTENING       9',
+    '  TCP    127.0.0.1:4747         127.0.0.1:50000        ESTABLISHED     77',
+    '  TCP    127.0.0.1:50000        127.0.0.1:4747         ESTABLISHED     88',
+    '  TCP    0.0.0.0:80             0.0.0.0:0              LISTENING       4',
+    '  TCP    [::]:4747              [::]:0                 LISTENING       5678',
+  ].join('\r\n');
+  assert.deepEqual(pidsEscutandoNaPorta(saida, 4747), [1234, 5678]);
+  assert.deepEqual(pidsEscutandoNaPorta('', 4747), []);
 });
 
 test('servidor da mesma pasta fica como está', async () => {
