@@ -1,0 +1,8 @@
+# Todo texto sai com LF em qualquer máquina, mesmo com core.autocrlf=true (o padrão do Git no Windows).
+# Os scripts leem frontmatter com `^---\n`, o bin/perguntas é bash e os testes comparam cópias byte a byte;
+# a cópia que o Claude Code instala (o clone do marketplace) também segue este arquivo.
+* text=auto eol=lf
+
+*.jpg binary
+*.png binary
+*.woff2 binary

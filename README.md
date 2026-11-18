@@ -407,6 +407,7 @@ claude plugin test plugins/barra
 ```
 
 - Validar um plugin: `claude plugin validate plugins/<nome>`.
+- Texto sempre em LF, inclusive no Windows com `core.autocrlf=true` (o `.gitattributes` manda): os scripts do `design-wicomm` leem o frontmatter com `\n` e o `bin/perguntas` é bash. Um checkout antigo em CRLF volta ao LF com `git rm --cached -r -q . && git reset --hard` (sem mudança pendente).
 - Release: com o gate verde, `git push origin <sha da develop>:refs/heads/main` (skill `orquestracao:release`).
 - Mudar um contrato entre plugins ([`docs/contratos.md`](docs/contratos.md)) é mudar todos os lados no mesmo PR. As páginas locais compartilham o mesmo visual; `plugins/contas/src/painel/test/layout-comum.test.mjs` falha se as cópias divergirem.
 
