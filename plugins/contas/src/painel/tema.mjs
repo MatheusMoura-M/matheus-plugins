@@ -1,4 +1,4 @@
-// O tema do painel: a escolha do botão de tema, no `tema.json` do kit (ICHIKAWA_HOME, padrão ~/.claude/ichikawa) — o
+// O tema do painel: a escolha do botão de tema, no `tema.json` do kit (MATHEUS_PLUGINS_HOME, padrão ~/.claude/matheus-plugins) — o
 // mesmo arquivo que a barra e o Painel leem e gravam (docs/contratos.md). Claro é o céu de dia; escuro, a noite.
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
@@ -8,11 +8,25 @@ export const TEMAS = ['claro', 'escuro'];
 /** Sem escolha gravada (ou arquivo ilegível), o escuro. */
 export const TEMA_PADRAO = 'escuro';
 
-const pastaDoKit = (env) => env.ICHIKAWA_HOME || join(env.HOME || homedir(), '.claude', 'ichikawa');
+const casa = (env) => env.HOME || homedir();
+const pastaDoKit = (env) => env.MATHEUS_PLUGINS_HOME || join(casa(env), '.claude', 'matheus-plugins');
+
+/**
+ * Um arquivo da pasta do kit. Sem ele lá (contas sem o orquestracao, que é quem migra, ou antes da primeira migração), o
+ * da pasta do kit original, `~/.claude/ichikawa`. As gravações vão só para a pasta nova.
+ */
+async function lerDoKit(env, nome) {
+  try {
+    return await readFile(join(pastaDoKit(env), nome), 'utf8');
+  } catch (e) {
+    if (e?.code !== 'ENOENT' || env.MATHEUS_PLUGINS_HOME) throw e;
+    return readFile(join(casa(env), '.claude', 'ichikawa', nome), 'utf8');
+  }
+}
 
 export async function lerTema(env) {
   try {
-    return JSON.parse(await readFile(join(pastaDoKit(env), 'tema.json'), 'utf8'))?.tema === 'claro' ? 'claro' : TEMA_PADRAO;
+    return JSON.parse(await lerDoKit(env, 'tema.json'))?.tema === 'claro' ? 'claro' : TEMA_PADRAO;
   } catch { return TEMA_PADRAO; }
 }
 
@@ -34,7 +48,7 @@ export async function gravarTema(env, tema, agora = new Date()) {
 /** O tema do app (`tema-do-app.json`): só `"ligado": false` desliga; sem arquivo, ilegível ou outro valor, ligado. */
 export async function lerTemaDoApp(env) {
   try {
-    return JSON.parse(await readFile(join(pastaDoKit(env), 'tema-do-app.json'), 'utf8'))?.ligado !== false;
+    return JSON.parse(await lerDoKit(env, 'tema-do-app.json'))?.ligado !== false;
   } catch { return true; }
 }
 
@@ -53,7 +67,7 @@ export async function gravarTemaDoApp(env, ligado, agora = new Date()) {
 /** O tema do painel (`tema-do-painel.json`): só `"ligado": false` desliga (o layout do kit antigo); sem arquivo, ligado. */
 export async function lerTemaDoPainel(env) {
   try {
-    return JSON.parse(await readFile(join(pastaDoKit(env), 'tema-do-painel.json'), 'utf8'))?.ligado !== false;
+    return JSON.parse(await lerDoKit(env, 'tema-do-painel.json'))?.ligado !== false;
   } catch { return true; }
 }
 

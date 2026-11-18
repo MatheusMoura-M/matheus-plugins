@@ -13,10 +13,10 @@ const app = (sessoes, lidoMin = 1) => ({ lidoEm: AGORA - lidoMin * 60_000, sesso
 const s = (id, extra = {}) => ({ sessionId: id, titulo: id, projeto: 'kit', arquivada: false, rodando: false, pr: null, prEstado: null, ultimaAtividade: ha(2), link: null, ...extra });
 const item = (id, etapa, sessao, extra = {}) => ({ projeto: 'kit', i: { id, titulo: `t${id}`, etapa, sessao, pr: null, ...extra } });
 
-beforeEach(() => { process.env.ICHIKAWA_HOME = mkdtempSync(join(tmpdir(), 'ichikawa-')); });
+beforeEach(() => { process.env.MATHEUS_PLUGINS_HOME = mkdtempSync(join(tmpdir(), 'kit-')); });
 
 test('projetoDaPasta: worktree conta como o repositório', () => {
-  assert.equal(projetoDaPasta('/p/ichikawa-plugins/.claude/worktrees/x-1'), 'ichikawa-plugins');
+  assert.equal(projetoDaPasta('/p/matheus-plugins/.claude/worktrees/x-1'), 'matheus-plugins');
   assert.equal(projetoDaPasta('/p/Izanagi/'), 'Izanagi');
   assert.equal(projetoDaPasta('C:\\Users\\x\\matheus-plugins'), 'matheus-plugins', 'cwd do Windows, com \\');
   assert.equal(projetoDaPasta('C:\\Users\\x\\matheus-plugins\\.claude\\worktrees\\x-1\\'), 'matheus-plugins');
@@ -24,7 +24,7 @@ test('projetoDaPasta: worktree conta como o repositório', () => {
 });
 
 test('lerSessoesDoApp: sem arquivo, ilegível e bom; não confia no conteúdo', () => {
-  const raiz = process.env.ICHIKAWA_HOME;
+  const raiz = process.env.MATHEUS_PLUGINS_HOME;
   assert.equal(lerSessoesDoApp(raiz).erro, 'sem-arquivo');
   writeFileSync(join(raiz, 'sessoes-do-app.json'), '{');
   assert.equal(lerSessoesDoApp(raiz).erro, 'ilegivel');
@@ -165,7 +165,7 @@ test('a página mostra as sessões: marcador, esteira, pergunta com âncora, PR 
   estado.criar('itens', 'kit', { titulo: 'Login', etapa: 'execucao', sessao: 'local_1' });
   estado.criar('perguntas', 'kit', { titulo: 'Apagar?', estado: 'aberta', item: 'F1' });
   assert.match(html(agora), /sem o status do app/);
-  writeFileSync(join(process.env.ICHIKAWA_HOME, 'sessoes-do-app.json'), JSON.stringify({ lidoEm: new Date(agora - 30_000).toISOString(), sessoes: [
+  writeFileSync(join(process.env.MATHEUS_PLUGINS_HOME, 'sessoes-do-app.json'), JSON.stringify({ lidoEm: new Date(agora - 30_000).toISOString(), sessoes: [
     { sessionId: 'local_1', title: 'KIT-F1 · Login', cwd: '/p/kit/.claude/worktrees/w', isRunning: true, prNumber: 3, prState: 'OPEN', link: 'claude://claude.ai/epitaxy/local_1' },
     { sessionId: 'local_orq', title: '🎛 orquestradora', cwd: '/p/kit', lastActivityAt: new Date(agora - 5 * 60_000).toISOString() },
   ] }));
@@ -186,7 +186,7 @@ test('a página mostra as sessões: marcador, esteira, pergunta com âncora, PR 
 test('sessão sem item rodando vira cartão como as ativas; no pontilhado ficam só as paradas', () => {
   const agora = Date.now();
   estado.criar('itens', 'kit', { titulo: 'Login', etapa: 'execucao', sessao: 'local_1' });
-  writeFileSync(join(process.env.ICHIKAWA_HOME, 'sessoes-do-app.json'), JSON.stringify({ lidoEm: new Date(agora - 30_000).toISOString(), sessoes: [
+  writeFileSync(join(process.env.MATHEUS_PLUGINS_HOME, 'sessoes-do-app.json'), JSON.stringify({ lidoEm: new Date(agora - 30_000).toISOString(), sessoes: [
     { sessionId: 'local_1', title: 'KIT-F1 · Login', cwd: '/p/kit', isRunning: true },
     { sessionId: 'local_doc', title: 'Documentação do kit', cwd: '/p/kit', isRunning: true, link: 'claude://claude.ai/epitaxy/local_doc' },
     { sessionId: 'local_orq', title: '🎛 orquestradora', cwd: '/p/kit', lastActivityAt: new Date(agora - 5 * 60_000).toISOString() },

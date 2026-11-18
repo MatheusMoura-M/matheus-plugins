@@ -117,11 +117,15 @@ async function pastaDeCasa($: EngineInterface): Promise<string> {
   return semBarraNoFim(casa)
 }
 
-async function pastaIchikawa($: EngineInterface): Promise<string> {
-  const propria = await $.env.get('ICHIKAWA_HOME')
+/** A pasta de estado do kit (docs/contratos.md) e a do kit original, de onde o orquestracao migra o que havia. */
+const PASTA_DO_KIT = 'matheus-plugins'
+const PASTA_DO_KIT_ANTIGA = 'ichikawa'
+
+async function pastaDoKit($: EngineInterface): Promise<string> {
+  const propria = await $.env.get('MATHEUS_PLUGINS_HOME')
   if (propria) return semBarraNoFim(propria)
 
-  return `${await pastaDeCasa($)}/.claude/ichikawa`
+  return `${await pastaDeCasa($)}/.claude/${PASTA_DO_KIT}`
 }
 
 async function pastaClaude($: EngineInterface): Promise<string> {
@@ -136,13 +140,24 @@ async function lerSeExiste($: EngineInterface, caminho: string): Promise<string 
   return (await $.fs.read(caminho)) as string
 }
 
+/**
+ * Um arquivo da pasta do kit. Sem ele lá (barra sem o orquestracao, que é quem migra, ou antes da primeira migração), o
+ * da pasta do kit original, `~/.claude/ichikawa`. A barra só grava na pasta nova.
+ */
+async function lerDoKit($: EngineInterface, nome: string): Promise<string | null> {
+  const lido = await lerSeExiste($, `${await pastaDoKit($)}/${nome}`)
+  if (lido !== null || (await $.env.get('MATHEUS_PLUGINS_HOME'))) return lido
+
+  return lerSeExiste($, `${await pastaDeCasa($)}/.claude/${PASTA_DO_KIT_ANTIGA}/${nome}`)
+}
+
 // ---- ausente ----
 
 async function lerModo($: EngineInterface): Promise<void> {
   const geracao = geracaoAusente
   let valor: Ausente | null = null
   try {
-    valor = lerAusente(await lerSeExiste($, `${await pastaIchikawa($)}/ausente.json`))
+    valor = lerAusente(await lerDoKit($, 'ausente.json'))
   } catch (err) {
     logar($, `ausente.json: ${mensagem(err)}`)
   }
@@ -158,7 +173,7 @@ export async function alternarAusente($: EngineInterface): Promise<void> {
   geracaoAusente++
   try {
     const agora = await $.clock.now()
-    await $.fs.write(`${await pastaIchikawa($)}/ausente.json`, textoDoAusente(ligando, agora))
+    await $.fs.write(`${await pastaDoKit($)}/ausente.json`, textoDoAusente(ligando, agora))
     await update($, ausente, () => lerAusente(textoDoAusente(ligando, agora)))
     $.ui.toast(ligando ? 'Modo ausente ligado.' : 'Modo ausente desligado.')
   } catch (err) {
@@ -176,7 +191,7 @@ async function lerEscolhaDeTema($: EngineInterface): Promise<void> {
   const geracao = geracaoTema
   let valor: EscolhaDeTema = TEMA_PADRAO
   try {
-    valor = lerTema(await lerSeExiste($, `${await pastaIchikawa($)}/tema.json`))
+    valor = lerTema(await lerDoKit($, 'tema.json'))
   } catch (err) {
     logar($, `tema.json: ${mensagem(err)}`)
   }
@@ -190,7 +205,7 @@ export async function alternarTema($: EngineInterface): Promise<void> {
   await update($, trocandoTema, () => true)
   geracaoTema++
   try {
-    await $.fs.write(`${await pastaIchikawa($)}/tema.json`, textoDoTema(novo, await $.clock.now()))
+    await $.fs.write(`${await pastaDoKit($)}/tema.json`, textoDoTema(novo, await $.clock.now()))
     await update($, temaEscolhido, () => novo)
     await aplicarTema($)
   } catch (err) {
@@ -256,7 +271,7 @@ async function aplicarTema($: EngineInterface): Promise<void> {
 async function lerTemaDoAppGravado($: EngineInterface): Promise<void> {
   let valor = true
   try {
-    valor = lerTemaDoApp(await lerSeExiste($, `${await pastaIchikawa($)}/tema-do-app.json`))
+    valor = lerTemaDoApp(await lerDoKit($, 'tema-do-app.json'))
   } catch (err) {
     logar($, `tema-do-app.json: ${mensagem(err)}`)
   }
@@ -386,7 +401,7 @@ export async function gravarSessoes($: EngineInterface): Promise<void> {
   if (gravandoSessoes) return
   gravandoSessoes = true
   try {
-    const base = await pastaIchikawa($)
+    const base = await pastaDoKit($)
     const destino = `${base}/${ARQUIVO_SESSOES}`
     if (aindaFresco(await lerSeExiste($, destino), await $.clock.now())) return
     const [lista, eu] = await Promise.all([
@@ -425,7 +440,7 @@ async function vezDosPedidos($: EngineInterface): Promise<void> {
   if (atendendo) return
   atendendo = true
   try {
-    await atenderPedidos($, await pastaIchikawa($), (await $.env.get('CLAUDE_CODE_HOST_SESSION_ID')) || undefined)
+    await atenderPedidos($, await pastaDoKit($), (await $.env.get('CLAUDE_CODE_HOST_SESSION_ID')) || undefined)
   } catch (err) {
     logar($, `pedidos: ${mensagem(err)}`)
   } finally {

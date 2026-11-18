@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // PostToolUse (Edit|Write|MultiEdit): formata SÓ o arquivo editado, e só quando o projeto declara formatador
 // (biome.json(c) ou .prettierrc*/prettier.config.*). Usa o binário local de node_modules/.bin, nunca `npx` (que baixaria).
-// Timeout de 10 s e silêncio em qualquer erro. Desligue com ICHIKAWA_FORMATAR=0.
+// Timeout de 10 s e silêncio em qualquer erro. Desligue com MATHEUS_PLUGINS_FORMATAR=0.
 // Troca o hook de Stop do ECC (stop-format-typecheck, MIT, affaan-m/ECC 2.2.3), que rodava formatador e tsc no fim de todo turno.
 import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
@@ -46,7 +46,7 @@ function acharBinario(raiz, ferramenta, plataforma) {
 
 /** O comando que formata o arquivo editado, ou null quando não há o que fazer. */
 export function plano(entrada, ambiente = process.env, plataforma = process.platform) {
-  if (ambiente.ICHIKAWA_FORMATAR === '0') return null;
+  if (ambiente.MATHEUS_PLUGINS_FORMATAR === '0') return null;
   const arquivo = caminhoDe(entrada);
   if (!arquivo || /[\\/]node_modules[\\/]/.test(arquivo) || !existsSync(arquivo)) return null;
   const config = acharConfig(arquivo);

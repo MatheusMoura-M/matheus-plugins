@@ -25,7 +25,7 @@ const SESSAO_DO_APP = 'local_12345678-1234-1234-1234-123456789abc';
 let saida;
 const rodar = (...args) => { saida = []; return main(args, (s) => saida.push(s)); };
 
-beforeEach(() => { process.env.ICHIKAWA_HOME = mkdtempSync(join(tmpdir(), 'ichikawa-')); });
+beforeEach(() => { process.env.MATHEUS_PLUGINS_HOME = mkdtempSync(join(tmpdir(), 'kit-')); });
 
 /** Uma porta livre agora, dada pelo sistema: a sorteada (4800–5299) colidia com outro teste da suíte rodando junto. */
 const portaLivre = () => new Promise((ok, falha) => {
@@ -148,7 +148,7 @@ test('segredo que sai para outra sessão é recusado pelo nome do padrão, sem o
 });
 
 test('o início traz as regras, o ausente e o id da sessão', () => {
-  writeFileSync(join(process.env.ICHIKAWA_HOME, 'ausente.json'), '{"ligado":true,"desde":"agora"}');
+  writeFileSync(join(process.env.MATHEUS_PLUGINS_HOME, 'ausente.json'), '{"ligado":true,"desde":"agora"}');
   const ctx = contexto({ session_id: 'sessao-teste-2', cwd: tmpdir() });
   assert.match(ctx, /Regras do kit/);
   assert.match(ctx, /AUSENTE/);
@@ -235,7 +235,7 @@ test('selo zerado continua no topo, apagado', () => {
 
 test('o topo avisa se o modo ausente está ligado ou desligado', () => {
   assert.match(topoDe(html()), /class="aviso-ausente desligado"[^>]*>[\s\S]*Ausente desligado/);
-  writeFileSync(join(process.env.ICHIKAWA_HOME, 'ausente.json'), '{"ligado":true,"desde":"2026-11-13T21:15:00-03:00"}');
+  writeFileSync(join(process.env.MATHEUS_PLUGINS_HOME, 'ausente.json'), '{"ligado":true,"desde":"2026-11-13T21:15:00-03:00"}');
   const topo = topoDe(html());
   assert.match(topo, /class="aviso-ausente ligado"[^>]*>[\s\S]*Ausente ligado/);
   assert.match(topo, /desde 13\/11\/2026, 21:15/);
@@ -243,20 +243,20 @@ test('o topo avisa se o modo ausente está ligado ou desligado', () => {
 
 test('o céu segue só o tema.json: escuro sem escolha (com ausente ligado ou não), claro quando gravado', () => {
   assert.match(html(), /^<!doctype html><html lang="pt-BR" data-ceu="noite" data-tema-do-app="ligado" data-tema-do-painel="ligado">/);
-  writeFileSync(join(process.env.ICHIKAWA_HOME, 'ausente.json'), '{"ligado":false}');
+  writeFileSync(join(process.env.MATHEUS_PLUGINS_HOME, 'ausente.json'), '{"ligado":false}');
   assert.match(html(), /data-ceu="noite"/, 'o ausente desligado não traz mais o dia');
-  writeFileSync(join(process.env.ICHIKAWA_HOME, 'tema.json'), 'não é json');
+  writeFileSync(join(process.env.MATHEUS_PLUGINS_HOME, 'tema.json'), 'não é json');
   assert.match(html(), /data-ceu="noite"/);
   estado.gravarTema('claro', 'teste');
   assert.match(html(), /data-ceu="dia"/);
-  writeFileSync(join(process.env.ICHIKAWA_HOME, 'ausente.json'), '{"ligado":true}');
+  writeFileSync(join(process.env.MATHEUS_PLUGINS_HOME, 'ausente.json'), '{"ligado":true}');
   assert.match(html(), /data-ceu="dia"/, 'o ausente ligado não traz mais a noite');
 });
 
 test('tema.json: lê e grava o contrato; valor desconhecido não grava', () => {
   assert.equal(estado.lerTema(), 'escuro');
   estado.gravarTema('claro', 'painel', new Date(Date.UTC(2026, 10, 14, 0, 15)));
-  assert.deepEqual(JSON.parse(readFileSync(join(process.env.ICHIKAWA_HOME, 'tema.json'), 'utf8')), { tema: 'claro', em: '2026-11-14T00:15:00.000Z', por: 'painel' });
+  assert.deepEqual(JSON.parse(readFileSync(join(process.env.MATHEUS_PLUGINS_HOME, 'tema.json'), 'utf8')), { tema: 'claro', em: '2026-11-14T00:15:00.000Z', por: 'painel' });
   assert.equal(estado.lerTema(), 'claro');
   assert.throws(() => estado.gravarTema('azul', 'painel'), /tema desconhecido/);
   assert.equal(estado.lerTema(), 'claro');
@@ -285,7 +285,7 @@ test('gaveta de temas: o botão fica no canto esquerdo do topo e abre a gaveta c
 
 test('tema do painel: desligado vai no <html> e POST /tema-do-painel grava só da própria origem', async () => {
   assert.equal(estado.lerTemaDoPainel(), true, 'sem arquivo, ligado');
-  writeFileSync(join(process.env.ICHIKAWA_HOME, 'tema-do-painel.json'), 'não é json');
+  writeFileSync(join(process.env.MATHEUS_PLUGINS_HOME, 'tema-do-painel.json'), 'não é json');
   assert.equal(estado.lerTemaDoPainel(), true, 'ilegível, ligado');
   const porta = await portaLivre();
   const servidor = await servir(porta);
@@ -297,7 +297,7 @@ test('tema do painel: desligado vai no <html> e POST /tema-do-painel grava só d
     assert.equal((await enviar('ligado=nao')).status, 400);
     assert.equal((await enviar('ligado=false')).status, 204);
     assert.equal(estado.lerTemaDoPainel(), false);
-    assert.equal(JSON.parse(readFileSync(join(process.env.ICHIKAWA_HOME, 'tema-do-painel.json'), 'utf8')).por, 'painel');
+    assert.equal(JSON.parse(readFileSync(join(process.env.MATHEUS_PLUGINS_HOME, 'tema-do-painel.json'), 'utf8')).por, 'painel');
     assert.match(await (await fetch(url)).text(), /data-tema-do-painel="desligado"/);
     assert.equal((await enviar('ligado=true')).status, 204);
     assert.equal(estado.lerTemaDoPainel(), true);
@@ -319,7 +319,7 @@ test('tema do app: POST /tema-do-app grava só da própria origem', async () => 
     assert.equal((await enviar('ligado=talvez')).status, 400);
     assert.equal((await enviar('ligado=false')).status, 204);
     assert.equal(estado.lerTemaDoApp(), false);
-    assert.equal(JSON.parse(readFileSync(join(process.env.ICHIKAWA_HOME, 'tema-do-app.json'), 'utf8')).por, 'painel');
+    assert.equal(JSON.parse(readFileSync(join(process.env.MATHEUS_PLUGINS_HOME, 'tema-do-app.json'), 'utf8')).por, 'painel');
     assert.match(await (await fetch(url)).text(), /data-tema-do-app="desligado"/);
     assert.equal((await enviar('ligado=true')).status, 204);
     assert.equal(estado.lerTemaDoApp(), true);
@@ -339,7 +339,7 @@ test('POST /tema grava a escolha só da própria origem e só com claro ou escur
     assert.equal((await enviar('tema=azul')).status, 400);
     assert.equal((await enviar('tema=claro')).status, 204);
     assert.equal(estado.lerTema(), 'claro');
-    assert.equal(JSON.parse(readFileSync(join(process.env.ICHIKAWA_HOME, 'tema.json'), 'utf8')).por, 'painel');
+    assert.equal(JSON.parse(readFileSync(join(process.env.MATHEUS_PLUGINS_HOME, 'tema.json'), 'utf8')).por, 'painel');
     assert.match(await (await fetch(url)).text(), /data-ceu="dia"/);
     assert.equal((await enviar('tema=escuro')).status, 204);
     assert.equal(estado.lerTema(), 'escuro');
@@ -362,7 +362,7 @@ test('a página só aceita POST da própria origem e grava o pedido de resposta'
     const q = estado.ler('perguntas', 'p', 'Q1');
     assert.equal(q.estado, 'respondida');
     assert.equal(q.lida, false);
-    const pasta = join(process.env.ICHIKAWA_HOME, 'pedidos');
+    const pasta = join(process.env.MATHEUS_PLUGINS_HOME, 'pedidos');
     const pedido = JSON.parse(readFileSync(join(pasta, readdirSync(pasta)[0]), 'utf8'));
     assert.equal(pedido.tipo, 'responder');
     assert.equal(pedido.sessao, SESSAO_DO_APP);
@@ -502,7 +502,7 @@ test('formatar roda o binário local só no arquivo editado, e só com configura
 
   assert.equal(planoDeFormato(entrada, {}), null, 'sem configuração, não faz nada');
   writeFileSync(join(projeto, '.prettierrc'), '{}');
-  assert.equal(planoDeFormato(entrada, { ICHIKAWA_FORMATAR: '0' }), null);
+  assert.equal(planoDeFormato(entrada, { MATHEUS_PLUGINS_FORMATAR: '0' }), null);
   assert.equal(formatar(entrada, {}), true);
   assert.equal(readFileSync(registro, 'utf8').trim(), '--write src/a.ts');
   assert.equal(planoDeFormato({ tool_input: { file_path: join(projeto, 'src', 'novo.ts') } }, {}), null, 'arquivo inexistente');
@@ -559,7 +559,7 @@ test('a limpeza avisa sem bloquear, só à orquestradora, uma vez por degrau, e 
   const entrada = { session_id: 'sessao-limpa-1', transcript_path: transcript };
   assert.equal(pedirLimpeza(entrada), null);
   await rodar('papel', 'orquestradora', '--sessao-id', 'sessao-limpa-1');
-  const pendente = join(process.env.ICHIKAWA_HOME, 'papeis', 'sessao-limpa-1.limpeza-pendente');
+  const pendente = join(process.env.MATHEUS_PLUGINS_HOME, 'papeis', 'sessao-limpa-1.limpeza-pendente');
   assert.equal(existsSync(pendente), false);
   const saidaDoHook = pedirLimpeza(entrada);
   assert.deepEqual(Object.keys(saidaDoHook), ['systemMessage']);
@@ -576,7 +576,7 @@ test('com a limpeza pendente, a próxima mensagem do operador manda responder e 
   assert.equal(lembrarLimpeza(entrada), null);
   await rodar('papel', 'orquestradora', '--sessao-id', 'sessao-limpa-3');
   assert.equal(lembrarLimpeza(entrada), null);
-  const pendente = join(process.env.ICHIKAWA_HOME, 'papeis', 'sessao-limpa-3.limpeza-pendente');
+  const pendente = join(process.env.MATHEUS_PLUGINS_HOME, 'papeis', 'sessao-limpa-3.limpeza-pendente');
   writeFileSync(pendente, '160002');
   const ctx = lembrarLimpeza(entrada);
   assert.match(ctx, /Responda à mensagem/);
@@ -606,7 +606,7 @@ test('o limite padrão da limpeza é 150 mil: 140 mil não pede, 150 mil pede', 
 
 test('a sigla sai das 3 primeiras letras do nome e pode ser configurada, sem repetir a de outro projeto', async () => {
   assert.equal(estado.sigla('Izanagi'), 'IZA');
-  assert.equal(estado.sigla('ichikawa-plugins'), 'ICH');
+  assert.equal(estado.sigla('matheus-plugins'), 'MAT');
   assert.equal(estado.sigla('WiControl'), 'WIC');
   assert.equal(estado.sigla('a-b'), 'ABX');
   assert.equal(estado.rotulo('Izanagi', 'F3'), 'IZA-F3');
@@ -768,7 +768,7 @@ test('abrir a página arquiva no máximo uma vez por dia', async () => {
 });
 
 // ICH-F18: o servidor da página de outra versão do kit é trocado pelo desta; o resto fica.
-const PASTA_VELHA = '/Users/x/.claude/plugins/cache/ichikawa-plugins/orquestracao/3084fc400022';
+const PASTA_VELHA = '/Users/x/.claude/plugins/cache/matheus-plugins/orquestracao/3084fc400022';
 const comandoDaPagina = (pasta) => `/usr/local/bin/node ${pasta}/lib/cli.mjs pagina --porta 4747`;
 
 async function servidorFalso(porta, corpo) {
@@ -816,7 +816,7 @@ test('a linha de comando prova o servidor da página do kit, no cache ou no repo
 });
 
 test('a linha de comando do Windows também prova o servidor do kit', () => {
-  const velha = 'C:\\Users\\m\\.claude\\plugins\\cache\\ichikawa-plugins\\orquestracao\\1.2.3';
+  const velha = 'C:\\Users\\m\\.claude\\plugins\\cache\\matheus-plugins\\orquestracao\\1.2.3';
   assert.equal(pastaDoServidorDoKit(`"C:\\Program Files\\nodejs\\node.exe" "${velha}\\lib\\cli.mjs" pagina --porta 4747`), velha);
   assert.equal(pastaDoServidorDoKit(`node.exe ${velha}\\lib\\cli.mjs pagina`), velha);
   assert.equal(pastaDoServidorDoKit('"C:\\Python\\python.exe" -m http.server 4747'), null);

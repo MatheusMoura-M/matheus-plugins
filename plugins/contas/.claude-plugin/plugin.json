@@ -2,7 +2,7 @@
   "name": "contas",
   "description": "Várias contas do app do Claude no Mac: o painel local com a cota de cada conta e a troca sem Sign out, com as sessões do Code continuando na conta nova. Traz o botão Contas da barra e a skill trocar-conta.",
   "author": {
-    "name": "Gabriel Ichikawa Craice"
+    "name": "Matheus Moura"
   },
   "repository": "https://github.com/MatheusMoura-M/matheus-plugins",
   "license": "Apache-2.0",

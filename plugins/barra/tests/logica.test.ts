@@ -27,8 +27,8 @@ import {
   trocarRaiz,
 } from '../hooks/logica.js'
 
-const RAIZ = '/cache/ichikawa/orquestracao/1.0.0'
-const PLUGIN = { id: 'orquestracao@ichikawa', raiz: RAIZ }
+const RAIZ = '/cache/matheus-plugins/orquestracao/1.0.0'
+const PLUGIN = { id: 'orquestracao@matheus-plugins', raiz: RAIZ }
 
 test('mesclarLigados: a fonte de maior precedência vence chave a chave; valor não booleano é ignorado', () => {
   const user = { 'a@m': true, 'b@m': true, 'c@m': false }
@@ -58,16 +58,16 @@ test('pluginsLigados: só o instalado e ligado; desligado ou sem instalação aq
   const instalados = {
     version: 2,
     plugins: {
-      'contas@ichikawa': [{ scope: 'user', installPath: '/c/contas' }],
-      'orquestracao@ichikawa': [{ scope: 'user', installPath: RAIZ }],
-      'desligado@ichikawa': [{ scope: 'user', installPath: '/c/d' }],
-      'outro-projeto@ichikawa': [{ scope: 'project', projectPath: '/p/x', installPath: '/c/x' }],
+      'contas@matheus-plugins': [{ scope: 'user', installPath: '/c/contas' }],
+      'orquestracao@matheus-plugins': [{ scope: 'user', installPath: RAIZ }],
+      'desligado@matheus-plugins': [{ scope: 'user', installPath: '/c/d' }],
+      'outro-projeto@matheus-plugins': [{ scope: 'project', projectPath: '/p/x', installPath: '/c/x' }],
     },
   }
-  const ligados = { 'contas@ichikawa': true, 'orquestracao@ichikawa': true, 'desligado@ichikawa': false, 'outro-projeto@ichikawa': true, 'nao-instalado@ichikawa': true }
+  const ligados = { 'contas@matheus-plugins': true, 'orquestracao@matheus-plugins': true, 'desligado@matheus-plugins': false, 'outro-projeto@matheus-plugins': true, 'nao-instalado@matheus-plugins': true }
   expect(pluginsLigados(instalados, ligados, '/p/este')).toEqual([
-    { id: 'contas@ichikawa', raiz: '/c/contas' },
-    { id: 'orquestracao@ichikawa', raiz: RAIZ },
+    { id: 'contas@matheus-plugins', raiz: '/c/contas' },
+    { id: 'orquestracao@matheus-plugins', raiz: RAIZ },
   ])
   expect(pluginsLigados(null, ligados, '/p')).toEqual([])
 })
@@ -96,7 +96,7 @@ test('lerBarraJson: botões válidos com a raiz trocada; os inválidos viram err
     ],
   })
   const { botoes, erros } = lerBarraJson(texto, PLUGIN)
-  expect(botoes.map(b => b.chave)).toEqual(['orquestracao@ichikawa/perguntas', 'orquestracao@ichikawa/simples', 'orquestracao@ichikawa/pagina'])
+  expect(botoes.map(b => b.chave)).toEqual(['orquestracao@matheus-plugins/perguntas', 'orquestracao@matheus-plugins/simples', 'orquestracao@matheus-plugins/pagina'])
   expect(botoes[2]?.url).toBe('http://127.0.0.1:4747')
   expect(botoes[0]?.url, 'sem url: nada').toBeUndefined()
   expect(botoes[0]?.comando).toEqual(['node', `${RAIZ}/bin/p.mjs`, 'pagina'])

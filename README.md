@@ -59,7 +59,7 @@ Este fluxo é para trabalho que se divide em várias entregas. Um ajuste de layo
 
 ## Os plugins
 
-Os plugins não importam código uns dos outros. Eles se encontram só por arquivos em `~/.claude/ichikawa/` e por comandos, descritos em [`docs/contratos.md`](docs/contratos.md). Cada um funciona sozinho; juntos, a barra ganha os botões do Painel e de Contas.
+Os plugins não importam código uns dos outros. Eles se encontram só por arquivos em `~/.claude/matheus-plugins/` e por comandos, descritos em [`docs/contratos.md`](docs/contratos.md). Cada um funciona sozinho; juntos, a barra ganha os botões do Painel e de Contas.
 
 | Plugin | Em uma frase | Onde ligar |
 |---|---|---|
@@ -193,7 +193,7 @@ A maioria avisa ou pergunta antes. Só três seguram: a mensagem com segredo par
 | Antes de rodar Bash | `sem-no-verify` | `--no-verify` e afins perguntam antes. |
 | Antes de mandar mensagem a outra sessão | `segredo-sai` | Recusa a mensagem que leva segredo a outra sessão. |
 | Antes da caixa de próximo passo | `pergunta-na-caixa` | A caixa que espera você só passa com a pergunta gravada no Painel. |
-| Depois de editar | `aviso-console-log`, `formatar-editado` | Avisa `console.log` em código de produto; formata só o arquivo editado, se o projeto declara Biome ou Prettier (`ICHIKAWA_FORMATAR=0` desliga). |
+| Depois de editar | `aviso-console-log`, `formatar-editado` | Avisa `console.log` em código de produto; formata só o arquivo editado, se o projeto declara Biome ou Prettier (`MATHEUS_PLUGINS_FORMATAR=0` desliga). |
 | Fim do turno | `pergunta-no-painel`, `orquestradora-limpa` | Cobra bloco de decisão (`**D…`, `**IZA-Q…`) sem registro; avisa quando o contexto da orquestradora pede limpeza. |
 
 ---
@@ -252,7 +252,7 @@ Detalhes e fontes: [`plugins/stack/README.md`](plugins/stack/README.md).
 **O que faz.** Uma faixa acima do prompt do Claude Code (app desktop e terminal) com o céu do tema:
 
 - **⧗ Cache:** quanto falta do cache de 1 h desde a última resposta. Fica âmbar aos 20 min e vira etiqueta vermelha aos 10.
-- **☀ / ☾ Tema:** troca entre o dia e a noite e grava `~/.claude/ichikawa/tema.json`, a mesma escolha do Painel e do painel de contas.
+- **☀ / ☾ Tema:** troca entre o dia e a noite e grava `~/.claude/matheus-plugins/tema.json`, a mesma escolha do Painel e do painel de contas.
 - **◌ Ficar ausente / ↩ Estou de volta:** liga o modo ausente. Com ele ligado, as sessões perguntam pelo Painel e seguem com o que não depende de você.
 - **Botões dos outros plugins:** de cada plugin ligado lê o `barra.json` e mostra os botões (◫ Painel do `orquestracao`, ◉ Contas do `contas`), com selo de contador.
 - **Por trás:** a cada 60 s grava o status das sessões do app para a seção Sessões do Painel e, a cada 5 s, executa o que o Painel pediu (responder a uma sessão, abrir uma sessão). Nada disso entra no contexto do modelo.
@@ -368,6 +368,8 @@ claude plugin uninstall stack@ichikawa-plugins
 claude plugin uninstall barra@ichikawa-plugins
 claude plugin marketplace remove ichikawa-plugins
 ```
+
+O estado da máquina (itens, perguntas, tema, modo ausente) vem junto sozinho: na primeira sessão com este kit, o orquestracao move `~/.claude/ichikawa/` para `~/.claude/matheus-plugins/` e deixa um link no lugar da antiga; o que existir dos dois lados com conteúdo diferente fica em `migracao-conflitos/` ([detalhe](docs/contratos.md#pasta-de-estado)). Quem tinha `ICHIKAWA_FORMATAR=0` troca por `MATHEUS_PLUGINS_FORMATAR=0`.
 
 **Branches do kit.** A `develop` é o tronco, onde os PRs entram por squash. A `main` é o que as máquinas instalam. Neste repositório o release sai logo depois de cada PR mergeado. Não há `version` no `plugin.json`: a versão é o commit.
 

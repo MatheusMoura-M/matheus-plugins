@@ -66,7 +66,7 @@ describe('as opções do plugin', () => {
 
   it('a variável do app vence o que está gravado no settings; sem nenhuma, undefined', () => {
     const { casa, env } = conta();
-    escrever(casa, '.claude/settings.json', { pluginConfigs: { 'design-wicomm@ichikawa-plugins': { options: { largura: 1440 } } } });
+    escrever(casa, '.claude/settings.json', { pluginConfigs: { 'design-wicomm@matheus-plugins': { options: { largura: 1440 } } } });
     assert.equal(opcao('largura', { home: casa, env }), 1440);
     assert.equal(opcao('largura', { home: casa, env: { ...env, CLAUDE_PLUGIN_OPTION_LARGURA: '1600' } }), '1600');
     assert.equal(opcao('pasta_do_front', { home: casa, env }), undefined);
