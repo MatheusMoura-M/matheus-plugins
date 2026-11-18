@@ -31,7 +31,7 @@ Para cada documento, mescla a cópia do projeto, o ancestral (`design/.base/`, a
 
 ## 3. A nota de migração
 
-Leia as notas de release do sistema entre a versão antiga e a nova (o `CHANGELOG.md` do repositório `MatheusMoura-M/wicomm-atelie`: uma entrada por versão da base, com *O que muda* e *Migração*). MAJOR traz passos de migração de tela: liste-os como trabalho, não os aplique calado.
+Leia as notas de release do sistema entre a versão antiga e a nova (o `CHANGELOG.md` do ateliê: uma entrada por versão da base, com *O que muda* e *Migração*). O repositório do ateliê não está ao alcance hoje; sem as notas, diga isso ao operador e compare as peças do registro publicado (`https://wicomm-atelie.vercel.app/r/<versão>/{name}.json`) entre as duas versões. MAJOR traz passos de migração de tela: liste-os como trabalho, não os aplique calado.
 
 ## 4. Tokens e guardas
 
