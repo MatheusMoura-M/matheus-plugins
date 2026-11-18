@@ -225,18 +225,23 @@ export function lerContador(saida: { exitCode: number; stdout: string }): number
 export const rotuloComSelo = (rotulo: string, selo: number | null | undefined): string =>
   typeof selo === 'number' && selo !== 0 ? `${rotulo} · ${selo}` : rotulo
 
+// Roda `process.argv[1..]` solto (grupo próprio, sem herdar a saída, sem janela no Windows) e sai na hora. Comando que
+// não existe falha antes de o node sair, e a barra vê a saída diferente de 0.
+const SCRIPT_DESACOPLADO = [
+  "const filho = require('node:child_process').spawn(process.argv[1], process.argv.slice(2), { detached: true, stdio: 'ignore', windowsHide: true })",
+  "filho.on('error', (err) => { process.stderr.write(String(err && err.message || err)); process.exitCode = 1 })",
+  "filho.on('spawn', () => filho.unref())",
+].join('\n')
+
 /**
- * O argv que roda o comando desacoplado: o `sh` só recebe o argv como "$@" (nenhum argumento é interpretado pelo shell),
- * põe o processo em segundo plano com a saída descartada e sai na hora. Assim a barra não espera, e um recarregamento
- * do mod não mata o processo (o `$.process.spawn` mataria).
+ * O argv que roda o comando desacoplado: o node recebe o argv como argumentos (nenhum é interpretado por shell), solta o
+ * processo com a saída descartada e sai. Assim a barra não espera, e um recarregamento do mod não mata o processo (o
+ * `$.process.spawn` mataria). Pelo node, e não por `/bin/sh -c 'nohup …'`, porque o Windows não tem `sh`.
  */
-export const argvDesacoplado = (comando: readonly string[]): string[] => [
-  '/bin/sh',
-  '-c',
-  'nohup "$@" </dev/null >/dev/null 2>&1 &',
-  'barra',
-  ...comando,
-]
+export const argvDesacoplado = (comando: readonly string[]): string[] => ['node', '-e', SCRIPT_DESACOPLADO, ...comando]
+
+/** O navegador do sistema, para quando o app não tem o painel de navegador: `open` no macOS, `explorer.exe` no Windows. */
+export const argvParaAbrirUrl = (url: string, windows: boolean): string[] => (windows ? ['explorer.exe', url] : ['open', url])
 
 // ---- mover e apagar arquivo ----
 // O `$.fs` do motor lê, grava (criando as pastas) e lista, mas não renomeia nem apaga; e `mv`, `rm` e `mkdir` não existem

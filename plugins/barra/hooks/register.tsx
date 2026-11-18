@@ -45,6 +45,7 @@ import { svgDoDia } from './fundo-dia'
 import { svgDoCeu } from './fundo-noite'
 import { CORES_DIA, CORES_NOITE } from './paleta'
 import { atenderPedidos } from './pedidos'
+import { argvParaAbrirUrl } from './logica'
 import {
   ARQUIVO_SESSOES,
   SESSOES_INTERVALO_MS,
@@ -346,7 +347,9 @@ async function abrirNoApp($: EngineInterface, b: Botao, url: string): Promise<vo
   try {
     r = (await $.tool.call({ tool: FERRAMENTA_NAVEGADOR_DO_APP, url } as never)) as typeof r
   } catch {
-    await $.process.run(['open', url], { timeoutMs: CONTADOR_PRAZO_MS })
+    // O motor não diz o sistema; o Windows põe `OS=Windows_NT` no ambiente de todo processo.
+    const windows = (await $.env.get('OS')) === 'Windows_NT'
+    await $.process.run(argvParaAbrirUrl(url, windows), { timeoutMs: CONTADOR_PRAZO_MS })
     return
   }
   if (r.deny !== undefined) $.ui.toast(`"${b.rotulo}": o app não abriu o navegador (${r.deny || 'negado'}).`)

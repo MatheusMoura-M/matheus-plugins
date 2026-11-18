@@ -1,5 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
+import { argvParaAbrirUrl } from '../hooks/logica'
+
 import {
   argvDesacoplado,
   argvParaApagar,
@@ -123,10 +125,17 @@ test('lerContador e rotuloComSelo: inteiro sozinho vira selo; zero, falha ou tex
   expect(rotuloComSelo('Perguntas', null)).toBe('Perguntas')
 })
 
-test('argvDesacoplado: o comando vai como "$@", sem ser interpretado pelo shell', () => {
+test('argvDesacoplado: pelo node (o Windows não tem sh), o comando vai como argumentos, sem shell', () => {
   const argv = argvDesacoplado(['node', '/r/a b.mjs', '; rm -rf /'])
-  expect(argv.slice(0, 4)).toEqual(['/bin/sh', '-c', 'nohup "$@" </dev/null >/dev/null 2>&1 &', 'barra'])
-  expect(argv.slice(4)).toEqual(['node', '/r/a b.mjs', '; rm -rf /'])
+  expect(argv.slice(0, 2)).toEqual(['node', '-e'])
+  expect(argv[2]).toContain('detached: true')
+  expect(argv[2]).not.toContain('shell')
+  expect(argv.slice(3)).toEqual(['node', '/r/a b.mjs', '; rm -rf /'])
+})
+
+test('argvParaAbrirUrl: open no macOS, explorer.exe no Windows', () => {
+  expect(argvParaAbrirUrl('http://127.0.0.1:4747', false)).toEqual(['open', 'http://127.0.0.1:4747'])
+  expect(argvParaAbrirUrl('http://127.0.0.1:4747', true)).toEqual(['explorer.exe', 'http://127.0.0.1:4747'])
 })
 
 test('argvParaMover e argvParaApagar: pelo node, sem mv/rm/mkdir (que o Windows não tem), caminhos como argumentos', () => {
