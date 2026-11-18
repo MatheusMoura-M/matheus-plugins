@@ -313,7 +313,7 @@ describe('cli: adicionar --voltar (F556)', () => {
     writeFileSync(join(m.appDir, 'config.json'), textoDeConfig(configDe(CONTA_B)));
     writeFileSync(join(m.appDir, 'Cookies'), 'SENTINELA-COOKIE-B');
   };
-  const rapido = (esperar) => ({ esperar, prazoMs: 10_000, intervaloMs: 2000, assentarMs: 0 });
+  const rapido = (esperar) => ({ esperar, prazoMs: 10_000, intervaloMs: 2000, assentarMs: 0, gravarCookiesMs: 0 });
 
   it('--voltar com outro comando é uso errado (código 2), sem mexer no app nem gravar desfecho', async () => {
     const m = montar();

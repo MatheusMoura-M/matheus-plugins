@@ -28,7 +28,7 @@ painel-de-contas            # sobe o painel em http://127.0.0.1:4791 e abre o na
 | No painel | O que faz |
 |---|---|
 | **Ler cota** | No Mac, pede uma vez ao macOS a senha "Claude Safe Storage" do Keychain (clique em **Permitir**, não em Permitir Sempre). No Windows, abre sem perguntar nada a chave que o app guarda na sua conta do Windows (o `Local State` do app, protegido pela DPAPI). Depois lê a cota de todas as contas guardadas. A senha e a chave ficam só na memória do painel. |
-| **Adicionar conta** | Guarda a conta aberta, fecha o app e o abre na tela de entrada. Entre com a outra conta (código do e-mail, uma vez por conta); o app volta sozinho para a conta de antes. |
+| **Adicionar conta** | Guarda a conta aberta, fecha o app e o abre na tela de entrada. Entre com a outra conta (código do e-mail, uma vez por conta); o app volta sozinho para a conta de antes. Depois da entrada, espera até 35 s o app gravar os cookies dela (o Chromium só os grava a cada 30 s): sem isso o login guardado fica pela metade e o app pede a entrada de novo ao trocar para ela. |
 | **Trocar para esta** | Fecha o app, põe o login da conta escolhida, traz a lista de conversas e abre o app de novo (uns 5 s). |
 | **Dar nome** | Dá um nome à conta na lista. |
 | **Sincronizar lista** | Deixa a lista de conversas da conta aberta igual à das outras contas. |
