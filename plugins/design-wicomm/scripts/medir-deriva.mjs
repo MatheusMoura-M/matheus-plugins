@@ -20,10 +20,13 @@
  * que montam classe. Não escreve nada, não instala nada, não roda build nem executa código do projeto.
  */
 import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { configDoProjeto } from "../hooks/config.mjs";
 import { ICONE_DE_FORA, PADROES, PALETA_DIRETO } from "../hooks/valor-solto.mjs";
+
+/** Caminho relativo sempre com `/`, igual no Windows e no macOS. */
+const relativoComBarra = (de, para) => relative(de, para).split(sep).join("/");
 import { lerCor } from "./lib/contraste.mjs";
 import { animacoesSemEscape, declaracoes, literaisDoFonte, separaVariante, tagsDeAbertura, tokensDaLiteral } from "./lib/fonte.mjs";
 import { lerConfigTailwind } from "./lib/tailwind-config.mjs";
@@ -367,7 +370,7 @@ export function stack(raizDoFront) {
     configTailwind: configTw,
     avisos,
     shadcn: shadcn ? { estilo: shadcn.style ?? null, registries: Object.keys(shadcn.registries ?? {}) } : null,
-    pastaUi: pastaUi ? relative(raizDoFront, pastaUi) : null,
+    pastaUi: pastaUi ? relativoComBarra(raizDoFront, pastaUi) : null,
     pecas,
   };
 }
@@ -454,7 +457,7 @@ function doWicomm(raiz) {
 export function medirProjeto(raiz, pasta = ".", { idioma } = {}) {
   const front = join(raiz, pasta);
   const st = stack(front);
-  const todos = arquivosDeTela(join(front, existsSync(join(front, "src")) ? "src" : "")).map((c) => ({ caminho: relative(raiz, c), texto: readFileSync(c, "utf-8") }));
+  const todos = arquivosDeTela(join(front, existsSync(join(front, "src")) ? "src" : "")).map((c) => ({ caminho: relativoComBarra(raiz, c), texto: readFileSync(c, "utf-8") }));
   const logica = todos.filter((a) => LOGICA.test(a.caminho));
   const telas = todos.filter((a) => !LOGICA.test(a.caminho));
   const comClasse = logica.filter((a) => montaClasse(a.texto));
@@ -472,7 +475,7 @@ export function medirProjeto(raiz, pasta = ".", { idioma } = {}) {
   const wicomm = doWicomm(raiz);
   // Relativo à raiz, onde mora o design/design-system.json: como o lê a guarda e o aviso na escrita.
   const idiomaFinal = (idioma ?? wicomm?.idioma ?? null)?.replace(/^\.\//, "") ?? null;
-  const pastaUi = st.pastaUi ? join(pasta, st.pastaUi).replace(/^\.\//, "") : null;
+  const pastaUi = st.pastaUi ? join(pasta, st.pastaUi).split(sep).join("/").replace(/^\.\//, "") : null;
   const m = medir(medidos, { pastaUi, idioma: idiomaFinal, tailwind: st.tailwindVersao ?? (config ? 3 : null), semAlfa: config?.semAlfa ?? [], raios });
   // Os usos de cada peça da pasta ui, contados fora dela: pela peça principal (`command` → `<Command`), ou pela soma
   // das partes quando o arquivo não exporta o nome principal.
