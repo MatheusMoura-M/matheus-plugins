@@ -89,10 +89,36 @@ test('dois registros diferentes com o mesmo número: nenhum se perde', () => {
   escrever(join(antiga, 'itens', 'proj', 'F1.json'), '{"id":"F1","titulo":"original"}');
   escrever(join(nova, 'itens', 'proj', 'F1.json'), '{"id":"F1","titulo":"outro"}');
 
-  migrarPastaAntiga(antiga, nova);
+  const r = migrarPastaAntiga(antiga, nova);
 
   const textos = [ler(join(nova, 'itens', 'proj', 'F1.json')), ler(conflitos('itens', 'proj', 'F1.json'))].sort();
   assert.deepEqual(textos, ['{"id":"F1","titulo":"original"}', '{"id":"F1","titulo":"outro"}']);
+  assert.equal(r, 'com-conflitos', 'registro escondido nos conflitos pede aviso');
+  assert.equal(pastaEmUso(r, antiga, nova), nova);
+  assert.match(avisoDaMigracao(r, antiga, nova), /migracao-conflitos/);
+});
+
+test('outro processo novo faz o link no meio: conta como feito, sem aviso falso', () => {
+  escrever(join(antiga, 'itens', 'proj', 'F1.json'), '{"id":"F1"}');
+  const ligar = (alvo, caminho) => {
+    symlinkSync(alvo, caminho, 'junction'); // o outro processo chegou antes
+    throw Object.assign(new Error('EEXIST'), { code: 'EEXIST' });
+  };
+
+  assert.equal(migrarPastaAntiga(antiga, nova, { ligar }), 'migrada');
+
+  assert.equal(ler(join(nova, 'itens', 'proj', 'F1.json')), '{"id":"F1"}');
+});
+
+test('no lugar da antiga há um arquivo comum: não mexe nele, usa a nova e avisa', () => {
+  escrever(antiga, 'não sou pasta');
+
+  const r = migrarPastaAntiga(antiga, nova);
+
+  assert.equal(r, 'antiga-arquivo');
+  assert.equal(pastaEmUso(r, antiga, nova), nova);
+  assert.equal(ler(antiga), 'não sou pasta');
+  assert.match(avisoDaMigracao(r, antiga, nova), /arquivo/);
 });
 
 test('arquivo preso (a antiga não sai do caminho): nada muda e o kit segue na antiga', () => {
@@ -130,7 +156,7 @@ test('sessão velha recria a antiga entre o rename e o link: as duas viram sobra
     symlinkSync(alvo, caminho, 'junction');
   };
 
-  assert.equal(migrarPastaAntiga(antiga, nova, { ligar }), 'migrada');
+  assert.equal(migrarPastaAntiga(antiga, nova, { ligar }), 'com-conflitos');
 
   assert.ok(lstatSync(antiga).isSymbolicLink());
   const textos = [ler(join(nova, 'itens', 'proj', 'F1.json')), ler(conflitos('itens', 'proj', 'F1.json'))].sort();

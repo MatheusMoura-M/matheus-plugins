@@ -5,7 +5,7 @@
 // A ordem fecha a janela de duas pastas vivas: primeiro a antiga sai do caminho num rename só (vira uma "sobra"),
 // logo em seguida o link (junction no Windows) toma o lugar dela, e só então a sobra é mesclada na nova. Daí em
 // diante, quem grava pelo caminho antigo (sessões abertas antes do release, na versão velha) grava na nova.
-import { lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmdirSync, symlinkSync, unlinkSync } from 'node:fs';
+import { linkSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmdirSync, symlinkSync, unlinkSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
 export const PASTA_DE_CONFLITOS = 'migracao-conflitos';
@@ -17,7 +17,7 @@ const TEMPORARIO = /\.tmp$/;
 /** Resultados em que o kit segue na pasta antiga (a nova ainda não é a fonte da verdade). */
 const FICA_NA_ANTIGA = new Set(['adiada', 'link-alheio']);
 /** Resultados que pedem um aviso: a migração não terminou ou não pôde ser feita. */
-const PEDE_AVISO = new Set(['adiada', 'link-alheio', 'com-sobras']);
+const PEDE_AVISO = new Set(['adiada', 'link-alheio', 'antiga-arquivo', 'com-sobras', 'com-conflitos']);
 
 const estado = (caminho) => { try { return lstatSync(caminho); } catch { return null; } };
 const mesmaPasta = (a, b) => { try { return realpathSync.native(a) === realpathSync.native(b); } catch { return false; } };
@@ -33,10 +33,11 @@ function sobrasDe(antiga) {
 /**
  * Traz `antiga` para `nova` e deixa no lugar da antiga um link para a nova. Nunca lança.
  * `fs` troca o rename e o link (só nos testes, para simular arquivo preso ou corrida).
- * @returns {'sem-antiga'|'ja-migrada'|'migrada'|'com-sobras'|'adiada'|'link-alheio'|'mesma-pasta'}
+ * @returns {'sem-antiga'|'ja-migrada'|'migrada'|'com-conflitos'|'com-sobras'|'adiada'|'link-alheio'|'antiga-arquivo'|'mesma-pasta'}
  *   adiada: a antiga não pôde sair do caminho (arquivo preso) ou o link não pôde ser criado; nada mudou, o kit segue
- *   nela e a próxima vez tenta de novo. link-alheio: a antiga é link para outro lugar; nada se toca. com-sobras: o
- *   link está feito, mas algo ficou preso na sobra; a próxima vez termina.
+ *   nela e a próxima vez tenta de novo. link-alheio: a antiga é link para outro lugar; nada se toca. antiga-arquivo:
+ *   no lugar da antiga há um arquivo comum; nada se toca e o kit usa a nova. com-conflitos: migrou, mas algo foi para
+ *   `migracao-conflitos/`. com-sobras: o link está feito, mas algo ficou preso na sobra; a próxima vez termina.
  */
 export function migrarPastaAntiga(antiga, nova, fs = {}) {
   const renomear = fs.renomear ?? renameSync;
@@ -44,7 +45,7 @@ export function migrarPastaAntiga(antiga, nova, fs = {}) {
   try {
     const info = estado(antiga);
     if (info?.isSymbolicLink()) return mesmaPasta(antiga, nova) ? mesclarSobras(antiga, nova, 'ja-migrada') : 'link-alheio';
-    if (info && !info.isDirectory()) return 'link-alheio';
+    if (info && !info.isDirectory()) return 'antiga-arquivo';
     if (info && estado(nova) && mesmaPasta(antiga, nova)) return 'mesma-pasta';
     if (!info && sobrasDe(antiga).length === 0) return 'sem-antiga';
 
@@ -63,6 +64,7 @@ export function migrarPastaAntiga(antiga, nova, fs = {}) {
 function trocarPorLink(antiga, nova, renomear, ligar) {
   let ultima = null;
   for (let i = 0; i < TENTATIVAS_DE_LINK; i++) {
+    if (jaEhLink(antiga, nova)) return true; // outro processo novo fez o link no meio
     const info = estado(antiga);
     if (info && !info.isSymbolicLink()) {
       const sobra = `${antiga}${MARCA_DE_SOBRA}${process.pid}-${Date.now()}-${i}`;
@@ -71,8 +73,11 @@ function trocarPorLink(antiga, nova, renomear, ligar) {
     }
     try { ligar(nova, antiga); return true; } catch { /* a antiga voltou no meio, ou o disco não aceita link */ }
   }
+  if (jaEhLink(antiga, nova)) return true;
   return ultima ? desfazer(ultima, antiga, renomear) : false;
 }
+
+const jaEhLink = (antiga, nova) => Boolean(estado(antiga)?.isSymbolicLink()) && mesmaPasta(antiga, nova);
 
 function desfazer(sobra, antiga, renomear) {
   if (!estado(antiga)) { try { renomear(sobra, antiga); } catch { /* a sobra fica para a próxima vez */ } }
@@ -81,11 +86,31 @@ function desfazer(sobra, antiga, renomear) {
 
 function mesclarSobras(antiga, nova, seTudoSaiu) {
   let sobrou = false;
+  let conflitos = 0;
   for (const sobra of sobrasDe(antiga)) {
-    mesclar(sobra, nova, join(nova, PASTA_DE_CONFLITOS));
+    const conta = { conflitos: 0, raiz: sobra };
+    mesclar(sobra, nova, join(nova, PASTA_DE_CONFLITOS), conta);
+    conflitos += conta.conflitos;
     if (!apagarSeVazia(sobra)) sobrou = true;
   }
-  return sobrou ? 'com-sobras' : seTudoSaiu;
+  if (sobrou) return 'com-sobras';
+  return conflitos > 0 ? 'com-conflitos' : seTudoSaiu;
+}
+
+/**
+ * Move o arquivo sem nunca substituir o destino (o rename do Windows substitui): link duro e depois apaga a origem.
+ * Devolve false se o destino apareceu no meio. Disco sem link duro: rename.
+ */
+function moverSemPisar(origem, destino) {
+  try {
+    linkSync(origem, destino);
+  } catch (e) {
+    if (e?.code === 'EEXIST') return false;
+    renameSync(origem, destino);
+    return true;
+  }
+  unlinkSync(origem);
+  return true;
 }
 
 const mesmoConteudo = (a, b) => { try { return readFileSync(a).equals(readFileSync(b)); } catch { return false; } };
@@ -98,7 +123,10 @@ function guardar(origem, destino) {
   renameSync(origem, alvo);
 }
 
-function mesclar(de, para, conflitos) {
+function mesclar(de, para, conflitos, conta) {
+  // Conta só registro (itens/, perguntas/, papeis/…): tema.json, sessoes-do-app.json e os outros arquivos soltos da raiz
+  // são de configuração, a barra nova costuma gravá-los na nova antes da migração, e o mais novo no lugar já basta.
+  const emConflito = (origem, nome) => { guardar(origem, join(conflitos, nome)); if (de !== conta.raiz) conta.conflitos++; };
   for (const nome of readdirSync(de)) {
     const origem = join(de, nome);
     const destino = join(para, nome);
@@ -107,14 +135,15 @@ function mesclar(de, para, conflitos) {
       if (o.isFile() && TEMPORARIO.test(nome)) { unlinkSync(origem); continue; }
       let d = estado(destino);
       if (!d && o.isDirectory()) { mkdirSync(destino); d = estado(destino); } // pasta entra arquivo a arquivo: os temporários ficam de fora
-      if (!d) renameSync(origem, destino);
-      else if (o.isDirectory() && d.isDirectory()) mesclar(origem, destino, join(conflitos, nome));
+      if (!d && o.isFile()) { if (!moverSemPisar(origem, destino)) emConflito(origem, nome); }
+      else if (!d) renameSync(origem, destino);
+      else if (o.isDirectory() && d.isDirectory()) mesclar(origem, destino, join(conflitos, nome), conta);
       else if (o.isFile() && d.isFile() && mesmoConteudo(origem, destino)) unlinkSync(origem);
       else if (o.isFile() && d.isFile() && o.mtimeMs > d.mtimeMs) {
         // O da sobra é o mais novo: ele fica no lugar, e o da nova vai para os conflitos.
-        guardar(destino, join(conflitos, nome));
-        renameSync(origem, destino);
-      } else guardar(origem, join(conflitos, nome));
+        emConflito(destino, nome);
+        if (!moverSemPisar(origem, destino)) emConflito(origem, nome);
+      } else emConflito(origem, nome);
     } catch { /* fica na sobra para a próxima vez */ }
   }
 }
@@ -137,6 +166,8 @@ export function avisoDaMigracao(resultado, antiga, nova) {
   const motivo = {
     'adiada': `não consegui tirar ${antiga} do caminho (arquivo aberto?); sigo nela e tento de novo na próxima sessão`,
     'link-alheio': `${antiga} é um link para outro lugar; sigo nela e não migro nada`,
+    'antiga-arquivo': `${antiga} é um arquivo, não uma pasta; não mexo nele e uso ${nova}`,
+    'com-conflitos': `migrei para ${nova}, mas registros com o mesmo nome e conteúdo diferente foram para ${join(nova, PASTA_DE_CONFLITOS)}; confira se algum item ou pergunta sumiu do Painel`,
     'com-sobras': `migrei para ${nova}, mas ficou algo preso em ${antiga}${MARCA_DE_SOBRA}*; tento de novo na próxima sessão`,
   }[resultado];
   return `kit: pasta de estado: ${motivo} (docs/contratos.md, "Vinda do kit original").`;

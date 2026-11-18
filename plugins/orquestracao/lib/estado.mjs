@@ -27,10 +27,15 @@ export const raiz = () => {
     const resultado = migrarPastaAntiga(antiga, nova);
     const aviso = avisoDaMigracao(resultado, antiga, nova);
     if (aviso) process.stderr.write(`${aviso}\n`);
+    avisoDaPastaAtual = aviso;
     emUso.set(nova, pastaEmUso(resultado, antiga, nova));
   }
   return emUso.get(nova);
 };
+
+let avisoDaPastaAtual = null;
+/** O aviso da migração da pasta neste processo (null se não houve nada a avisar), para o início da sessão mostrar. */
+export const avisoDaPasta = () => { raiz(); return avisoDaPastaAtual; };
 
 /** O nome do projeto: a pasta do repositório principal, igual em todos os worktrees. */
 export function nomeDoProjeto(cwd = process.cwd()) {
