@@ -31,7 +31,7 @@ const NOME_DO_KIT = 'orquestracao';
 /** A pasta deste plugin (no cache, uma por versão): é o que distingue o servidor desta versão do de outra. */
 export const PASTA_DO_KIT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 // `node <pasta do kit>/lib/cli.mjs pagina …`: a linha de comando com que `abrirPagina` sobe o servidor.
-const COMANDO_DA_PAGINA = /^\S*\bnode\s+(\/\S*\/orquestracao(?:\/[^/\s]+)?)\/lib\/cli\.mjs\s+pagina(?:\s|$)/;
+const COMANDO_DA_PAGINA = /^(?:"[^"]*[\\/]node(?:\.exe)?"|\S*\bnode(?:\.exe)?)\s+"?((?:\/|[A-Za-z]:[\\/])[^"\s]*?[\\/]orquestracao(?:[\\/][^\\/"\s]+)?)[\\/]lib[\\/]cli\.mjs"?\s+pagina(?:\s|$)/;
 const PUBLICO = fileURLToPath(new URL('./publico/', import.meta.url));
 // Texto vai com charset; a fonte (binária) vai só com o tipo.
 const ARQUIVOS = {
@@ -410,14 +410,37 @@ async function saudeNaPorta(porta) {
   } catch { return null; }
 }
 
-/** Processos escutando na porta, com a linha de comando de cada um (`lsof` + `ps`); vazio se não der para saber. */
+/** Pids que escutam na porta, lidos da saída de `netstat -ano -p TCP` (Windows); só linhas LISTENING do endereço local. */
+export function pidsEscutandoNaPorta(saida, porta) {
+  const alvos = [`127.0.0.1:${porta}`, `0.0.0.0:${porta}`, `[::1]:${porta}`, `[::]:${porta}`];
+  const pids = new Set();
+  for (const linha of String(saida ?? '').split(/\r?\n/)) {
+    const c = linha.trim().split(/\s+/);
+    if (c.length < 5 || c[0].toUpperCase() !== 'TCP' || c[3].toUpperCase() !== 'LISTENING' || !alvos.includes(c[1])) continue;
+    const pid = Number(c[4]);
+    if (Number.isInteger(pid) && pid > 0) pids.add(pid);
+  }
+  return [...pids];
+}
+
+const SAIDA = { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true };
+
+/** Processos escutando na porta, com a linha de comando de cada um (netstat + PowerShell no Windows, lsof + ps no resto); vazio se não der para saber. */
 function processosNaPorta(porta) {
   try {
-    const pids = execFileSync('lsof', ['-nP', `-iTCP:${porta}`, '-sTCP:LISTEN', '-t'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    if (process.platform === 'win32') {
+      return pidsEscutandoNaPorta(execFileSync('netstat', ['-ano', '-p', 'TCP'], SAIDA), porta).map((pid) => {
+        try {
+          const comando = execFileSync('powershell', ['-NoProfile', '-Command', `(Get-CimInstance Win32_Process -Filter 'ProcessId=${pid}').CommandLine`], SAIDA).trim();
+          return { pid, comando };
+        } catch { return null; }
+      }).filter(Boolean);
+    }
+    const pids = execFileSync('lsof', ['-nP', `-iTCP:${porta}`, '-sTCP:LISTEN', '-t'], SAIDA)
       .split('\n').map(Number).filter((n) => Number.isInteger(n) && n > 0);
     return pids.map((pid) => {
       try {
-        return { pid, comando: execFileSync('ps', ['-o', 'command=', '-p', String(pid)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() };
+        return { pid, comando: execFileSync('ps', ['-o', 'command=', '-p', String(pid)], SAIDA).trim() };
       } catch { return null; }
     }).filter(Boolean);
   } catch { return []; }
@@ -473,8 +496,9 @@ export async function abrirPagina(porta = PORTA_PADRAO, {
     subir(porta);
     await esperarAte(async () => Boolean(await saude(porta)), prazoMs);
   }
-  if (navegador && process.platform === 'darwin' && !process.env.ICHIKAWA_SEM_NAVEGADOR) {
-    spawn('open', [url], { detached: true, stdio: 'ignore' }).unref();
+  if (navegador && !process.env.ICHIKAWA_SEM_NAVEGADOR) {
+    const abridor = { darwin: 'open', win32: 'explorer.exe' }[process.platform];
+    if (abridor) spawn(abridor, [url], { detached: true, stdio: 'ignore' }).unref();
   }
   return url;
 }
