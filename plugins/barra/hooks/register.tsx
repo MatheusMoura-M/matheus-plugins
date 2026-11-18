@@ -339,21 +339,20 @@ export async function ler($: EngineInterface): Promise<void> {
 }
 
 /**
- * Abre a página no painel de navegador do app. Sem a ferramenta (o terminal, ou o app sem o painel), cai no
- * navegador do sistema; recusa ou erro do app vira aviso.
+ * Abre a página no painel de navegador do app. Sem a ferramenta (o terminal, ou o app sem o painel), recusada (o app em
+ * auto mode não roda ferramenta que o código de um plugin chama) ou com erro, cai no navegador do sistema.
  */
-async function abrirNoApp($: EngineInterface, b: Botao, url: string): Promise<void> {
-  let r: { text?: string; isError?: boolean; deny?: string }
+async function abrirNoApp($: EngineInterface, url: string): Promise<void> {
+  let r: { text?: string; isError?: boolean; deny?: string } | undefined
   try {
     r = (await $.tool.call({ tool: FERRAMENTA_NAVEGADOR_DO_APP, url } as never)) as typeof r
   } catch {
-    // O motor não diz o sistema; o Windows põe `OS=Windows_NT` no ambiente de todo processo.
-    const windows = (await $.env.get('OS')) === 'Windows_NT'
-    await $.process.run(argvParaAbrirUrl(url, windows), { timeoutMs: CONTADOR_PRAZO_MS })
-    return
+    r = undefined
   }
-  if (r.deny !== undefined) $.ui.toast(`"${b.rotulo}": o app não abriu o navegador (${r.deny || 'negado'}).`)
-  else if (r.isError) $.ui.toast(`"${b.rotulo}": o app não abriu o navegador (${r.text || 'erro sem texto'}).`)
+  if (r !== undefined && r.deny === undefined && !r.isError) return
+  // O motor não diz o sistema; o Windows põe `OS=Windows_NT` no ambiente de todo processo.
+  const windows = (await $.env.get('OS')) === 'Windows_NT'
+  await $.process.run(argvParaAbrirUrl(url, windows), { timeoutMs: CONTADOR_PRAZO_MS })
 }
 
 export async function clicar($: EngineInterface, b: Botao): Promise<void> {
@@ -363,7 +362,7 @@ export async function clicar($: EngineInterface, b: Botao): Promise<void> {
     const prazo = b.url ? COMANDO_COM_URL_PRAZO_MS : CONTADOR_PRAZO_MS
     const r = await $.process.run(argv, { timeoutMs: prazo, env: { CLAUDE_PLUGIN_ROOT: b.raiz } })
     if (r.exitCode !== 0) return void $.ui.toast(`Não consegui rodar "${b.rotulo}" (${r.stderr.trim() || `saída ${r.exitCode}`}).`)
-    if (b.url) await abrirNoApp($, b, b.url)
+    if (b.url) await abrirNoApp($, b.url)
   } catch (err) {
     $.ui.toast(`Não consegui rodar "${b.rotulo}" (${mensagem(err)}).`)
   }

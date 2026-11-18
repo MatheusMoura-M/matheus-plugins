@@ -121,7 +121,7 @@ A orquestradora é para **dividir trabalho grande entre várias sessões**, não
 
 - **Orquestrar:** numa sessão na pasta do projeto, diga *"você é a orquestradora"* ou *"orquestra isso"*. Ela marca o papel (`perguntas papel orquestradora`), dá o título `🎛 orquestradora — <projeto>` e mostra o que está vivo.
 - **Trabalho de uma sessão só:** sem orquestradora, as skills funcionam do mesmo jeito. Peça *"planeja"*, *"executa o plano"*, *"abre o PR"*, *"faz o release"*.
-- **O Painel:** o botão **◫ Painel** da barra abre `http://127.0.0.1:4747` no navegador do app, com um selo de quantas perguntas estão abertas. Sem a barra: `perguntas pagina --abrir`.
+- **O Painel:** o botão **◫ Painel** da barra abre `http://127.0.0.1:4747` no navegador do app (no terminal, ou quando o app recusa, no do sistema), com um selo de quantas perguntas estão abertas. Sem a barra: `perguntas pagina --abrir`.
 
 ### O Painel
 
