@@ -27,6 +27,16 @@ const rodar = (...args) => { saida = []; return main(args, (s) => saida.push(s))
 
 beforeEach(() => { process.env.ICHIKAWA_HOME = mkdtempSync(join(tmpdir(), 'ichikawa-')); });
 
+/** Uma porta livre agora, dada pelo sistema: a sorteada (4800–5299) colidia com outro teste da suíte rodando junto. */
+const portaLivre = () => new Promise((ok, falha) => {
+  const s = createServer();
+  s.once('error', falha);
+  s.listen(0, '127.0.0.1', () => {
+    const { port } = s.address();
+    s.close(() => ok(port));
+  });
+});
+
 test('criar numera em sequência por projeto e listar devolve do mais novo ao mais velho', () => {
   estado.criar('perguntas', 'p', { titulo: 'a' });
   estado.criar('perguntas', 'p', { titulo: 'b' });
@@ -159,7 +169,7 @@ test('a página escapa o texto e separa perguntas, sessões e entregas', () => {
 });
 
 test('a página serve o céu e o planeta do rodapé que ele importa', async () => {
-  const porta = 4800 + Math.floor(Math.random() * 500);
+  const porta = await portaLivre();
   const servidor = await servir(porta);
   try {
     const url = `http://127.0.0.1:${porta}`;
@@ -180,7 +190,7 @@ test('a página serve o céu e o planeta do rodapé que ele importa', async () =
 });
 
 test('a página serve a fonte dos títulos embutida, como woff2 e sem charset', async () => {
-  const porta = 4800 + Math.floor(Math.random() * 500);
+  const porta = await portaLivre();
   const servidor = await servir(porta);
   try {
     const fonte = await fetch(`http://127.0.0.1:${porta}/fontes/geist-medium.woff2`);
@@ -255,7 +265,7 @@ test('tema.json: lê e grava o contrato; valor desconhecido não grava', () => {
 test('o topo traz o botão de tema e a página serve o tema.js', async () => {
   assert.match(topoDe(html()), /<button type="button" class="botao-tema" id="b-tema"[\s\S]*icone-sol[\s\S]*icone-lua/);
   assert.match(html(), /import \{ ligarBotaoDeTema, ligarGavetaDeTemas \} from '\/tema\.js'/);
-  const porta = 4800 + Math.floor(Math.random() * 500);
+  const porta = await portaLivre();
   const servidor = await servir(porta);
   try {
     const r = await fetch(`http://127.0.0.1:${porta}/tema.js`);
@@ -277,7 +287,7 @@ test('tema do painel: desligado vai no <html> e POST /tema-do-painel grava só d
   assert.equal(estado.lerTemaDoPainel(), true, 'sem arquivo, ligado');
   writeFileSync(join(process.env.ICHIKAWA_HOME, 'tema-do-painel.json'), 'não é json');
   assert.equal(estado.lerTemaDoPainel(), true, 'ilegível, ligado');
-  const porta = 4800 + Math.floor(Math.random() * 500);
+  const porta = await portaLivre();
   const servidor = await servir(porta);
   try {
     const url = `http://127.0.0.1:${porta}`;
@@ -299,7 +309,7 @@ test('tema do painel: desligado vai no <html> e POST /tema-do-painel grava só d
 test('tema do app: POST /tema-do-app grava só da própria origem', async () => {
   assert.equal(estado.lerTemaDoApp(), true, 'sem arquivo, ligado');
   assert.match(html(), /data-tema-do-app="ligado"/);
-  const porta = 4800 + Math.floor(Math.random() * 500);
+  const porta = await portaLivre();
   const servidor = await servir(porta);
   try {
     const url = `http://127.0.0.1:${porta}`;
@@ -319,7 +329,7 @@ test('tema do app: POST /tema-do-app grava só da própria origem', async () => 
 });
 
 test('POST /tema grava a escolha só da própria origem e só com claro ou escuro', async () => {
-  const porta = 4800 + Math.floor(Math.random() * 500);
+  const porta = await portaLivre();
   const servidor = await servir(porta);
   try {
     const url = `http://127.0.0.1:${porta}`;
@@ -340,7 +350,7 @@ test('POST /tema grava a escolha só da própria origem e só com claro ou escur
 
 test('a página só aceita POST da própria origem e grava o pedido de resposta', async () => {
   estado.criar('perguntas', 'p', { titulo: 'T', estado: 'aberta', sessao: SESSAO_DO_APP });
-  const porta = 4800 + Math.floor(Math.random() * 500);
+  const porta = await portaLivre();
   const servidor = await servir(porta);
   try {
     const url = `http://127.0.0.1:${porta}`;
@@ -765,7 +775,7 @@ async function abrirSobre(corpo, comando) {
 }
 
 test('/saude diz que é o kit e de que pasta', async () => {
-  const porta = 4800 + Math.floor(Math.random() * 500);
+  const porta = await portaLivre();
   const servidor = await servir(porta);
   try {
     assert.deepEqual(await (await fetch(`http://127.0.0.1:${porta}/saude`)).json(), { kit: 'orquestracao', pasta: PASTA_DO_KIT });

@@ -233,7 +233,8 @@ describe('densidadeDoProjeto: cada fonte sozinha', () => {
     escrever(real, 'pacotes/front/DESIGN.md', SECAO);
     escrever(real, 'pacotes/admin/DESIGN.md', SECAO.replace('instrumento', 'site'));
     const link = join(pasta('link-pai'), 'projeto');
-    symlinkSync(real, link);
+    // 'junction': no Windows, link de pasta sem o Modo de Desenvolvedor (o symlink comum dá EPERM); fora dele, ignorado.
+    symlinkSync(real, link, 'junction');
     const p = densidadeDoProjeto(link, { de: join(real, 'pacotes/front/a.tsx') });
     assert.equal(p.densidade, 'instrumento');
     assert.equal(p.fonte.densidade, 'pacotes/front/DESIGN.md#densidade');
