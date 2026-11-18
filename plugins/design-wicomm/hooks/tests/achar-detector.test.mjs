@@ -33,7 +33,7 @@ function cenario() {
   const registrar = (...entradas) => writeFileSync(join(home, '.claude', 'plugins', 'installed_plugins.json'),
     JSON.stringify({ version: 2, plugins: { 'impeccable@impeccable': entradas } }));
   const rodar = (cwd = front) => {
-    const r = spawnSync('node', [SCRIPT], { cwd, env: { ...process.env, HOME: home }, encoding: 'utf8', timeout: 10_000, killSignal: 'SIGKILL' });
+    const r = spawnSync('node', [SCRIPT], { cwd, env: { ...process.env, HOME: home, USERPROFILE: home }, encoding: 'utf8', timeout: 10_000, killSignal: 'SIGKILL' });
     assert.notEqual(r.status, null, `o script não terminou: ${r.stderr}`);
     return r;
   };

@@ -19,8 +19,13 @@ function raizDoProjeto(inicio) {
 }
 
 function contem(pasta, alvo) {
-  const p = resolve(pasta);
-  return alvo === p || alvo.startsWith(p.endsWith(sep) ? p : p + sep);
+  const norm = (c) => {
+    const r = resolve(c);
+    return process.platform === 'win32' ? r.toLowerCase() : r;
+  };
+  const p = norm(pasta);
+  const a = norm(alvo);
+  return a === p || a.startsWith(p.endsWith(sep) ? p : p + sep);
 }
 
 function instalados() {
