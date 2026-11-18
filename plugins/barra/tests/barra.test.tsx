@@ -57,16 +57,18 @@ function motor(on: On, opc: Opcoes = {}) {
     return { value: undefined }
   })
   on('settings.read', (_, e) => ({ value: (e.source ? settings[e.source] : {}) ?? {} }) as never)
+  // No Windows o motor entrega o caminho na forma do sistema (`C:\tmp\home-teste\…`): o fs falso guarda com `/`.
+  const n = (p: string) => p.replace(/^[A-Za-z]:(?=[\\/])/, '').replace(/\\/g, '/')
   const filhos = (dir: string) => [...arquivos.keys()].filter(k => k.startsWith(`${dir}/`) && !k.slice(dir.length + 1).includes('/'))
-  on('fs.exists', (_, e) => ({ value: arquivos.has(e.path) || [...arquivos.keys()].some(k => k.startsWith(`${e.path}/`)) }))
-  on('fs.list', (_, e) => ({ value: filhos(e.path ?? '').map(k => ({ name: k.slice((e.path ?? '').length + 1), kind: 'file' as const, size: 1, mtimeMs: 0, isLink: false })) }))
+  on('fs.exists', (_, e) => ({ value: arquivos.has(n(e.path)) || [...arquivos.keys()].some(k => k.startsWith(`${n(e.path)}/`)) }))
+  on('fs.list', (_, e) => ({ value: filhos(n(e.path ?? '')).map(k => ({ name: k.slice(n(e.path ?? '').length + 1), kind: 'file' as const, size: 1, mtimeMs: 0, isLink: false })) }))
   on('fs.read', (_, e) => {
-    const t = arquivos.get(e.path)
+    const t = arquivos.get(n(e.path))
     if (t === undefined) throw new Error(`ENOENT ${e.path}`)
     return { value: t }
   })
   on('fs.write', (_, e) => {
-    arquivos.set(e.path, e.text)
+    arquivos.set(n(e.path), e.text)
     return { value: undefined }
   })
   const rodadas: string[][] = []
