@@ -101,11 +101,21 @@ export function caminhoDe(entrada) {
   return resolve(entrada.cwd || process.cwd(), p);
 }
 
+/** O caminho com `/` (o Windows usa `\`), para as regras de caminho valerem nos dois sistemas. */
+export const comBarra = (p) => String(p).replace(/\\/g, '/');
+
+/** O comando é o git, chamado pelo nome ou pelo caminho (`/usr/bin/git`, `C:\…\git.exe`). */
+export const ehGit = (token) => /^git(?:\.exe)?$/i.test(String(token).split(/[\\/]/).pop());
+
+// No Windows a letra do drive e as pastas não diferenciam maiúsculas: `C:\Users` e `c:\users` são a mesma pasta.
+const paraComparar = (p) => (process.platform === 'win32' ? comBarra(p).toLowerCase() : comBarra(p));
+
 /** Pastas que não são código de produto: a ~/.claude, os rascunhos e as temporárias. */
 export function foraDoProduto(p) {
-  return p.startsWith(join(homedir(), '.claude') + '/')
-    || p.startsWith(resolve(tmpdir()) + '/')
-    || /^\/(private\/)?(tmp|var\/folders)\//.test(p);
+  const q = paraComparar(p);
+  return q.startsWith(paraComparar(join(homedir(), '.claude')) + '/')
+    || q.startsWith(paraComparar(resolve(tmpdir())) + '/')
+    || /^\/(private\/)?(tmp|var\/folders)\//.test(q);
 }
 
 export function rodar(nome, fn) {

@@ -18,6 +18,8 @@ beforeEach(() => { process.env.ICHIKAWA_HOME = mkdtempSync(join(tmpdir(), 'ichik
 test('projetoDaPasta: worktree conta como o repositório', () => {
   assert.equal(projetoDaPasta('/p/ichikawa-plugins/.claude/worktrees/x-1'), 'ichikawa-plugins');
   assert.equal(projetoDaPasta('/p/Izanagi/'), 'Izanagi');
+  assert.equal(projetoDaPasta('C:\\Users\\x\\matheus-plugins'), 'matheus-plugins', 'cwd do Windows, com \\');
+  assert.equal(projetoDaPasta('C:\\Users\\x\\matheus-plugins\\.claude\\worktrees\\x-1\\'), 'matheus-plugins');
   assert.equal(projetoDaPasta(''), null);
 });
 

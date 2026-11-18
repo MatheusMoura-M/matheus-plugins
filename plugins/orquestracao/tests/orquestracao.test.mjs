@@ -441,6 +441,8 @@ test('pular os hooks do git pergunta; commit e push normais passam', () => {
     'git -c core.hooksPath=/dev/null commit -m x',
     'npm test && git commit --no-verify -m x',
     'bash -c "git commit --no-verify -m x"',
+    'git.exe commit --no-verify -m x',
+    '"/c/Program Files/Git/cmd/git.exe" commit -n -m x',
   ]) assert.match(semNoVerify(bash(c)), /pula os hooks|desliga os hooks/, c);
   for (const c of [
     'git commit -m "corrige --no-verify no texto"',
@@ -469,6 +471,7 @@ test('segredo em arquivo pergunta pelo nome do padrão, sem o valor, e deixa o .
 
 test('git add de .env pergunta; .env.example e outros arquivos passam', () => {
   assert.match(segredoEmArquivo(bash('git add .env')), /\.env/);
+  assert.match(segredoEmArquivo(bash('git.exe add .env')), /\.env/);
   assert.match(segredoEmArquivo(bash('git add src/a.ts apps/web/.env.local')), /\.env\.local/);
   assert.match(segredoEmArquivo(bash('git -C app add -f .env && git status')), /\.env/);
   assert.equal(segredoEmArquivo(bash('git add .env.example')), null);

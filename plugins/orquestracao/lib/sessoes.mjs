@@ -23,7 +23,7 @@ const numeroDoId = (id) => Number(/(\d+)$/.exec(String(id ?? ''))?.[1] ?? Number
 export function projetoDaPasta(cwd) {
   const t = texto(cwd);
   if (!t) return null;
-  return t.replace(/\/+$/, '').replace(/\/\.claude\/worktrees\/[^/]+$/, '').split('/').pop() || null;
+  return t.replace(/\\/g, '/').replace(/\/+$/, '').replace(/\/\.claude\/worktrees\/[^/]+$/, '').split('/').pop() || null;
 }
 
 /** Uma sessão do arquivo, sem confiar nele: o que não tem `sessionId` fica de fora. */

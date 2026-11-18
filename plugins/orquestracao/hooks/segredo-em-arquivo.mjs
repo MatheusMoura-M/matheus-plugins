@@ -6,7 +6,7 @@
 // achado; aqui pergunta. As expressões vêm de varredura-entre-sessoes.mjs.
 import { basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { caminhoDe, lerEntrada, responder, rodar, textoGravado } from './comum.mjs';
+import { caminhoDe, ehGit, lerEntrada, responder, rodar, textoGravado } from './comum.mjs';
 import { SEGREDOS, segredosEm, nomesDe } from './varredura-entre-sessoes.mjs';
 import { segmentos } from './sem-no-verify.mjs';
 
@@ -26,7 +26,7 @@ function gravandoSegredo(entrada) {
 
 function addDeEnv(comando) {
   for (const tokens of segmentos(comando)) {
-    const g = tokens.findIndex((t) => t.split('/').pop() === 'git');
+    const g = tokens.findIndex(ehGit);
     if (g < 0) continue;
     const i = tokens.indexOf('add', g);
     if (i < 0) continue;
