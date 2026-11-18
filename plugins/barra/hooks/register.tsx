@@ -102,17 +102,30 @@ async function lerMovimento($: EngineInterface): Promise<boolean> {
   return pedeMenosMovimento(await $.env.get('BARRA_SEM_ANIMACAO'), saida)
 }
 
+const semBarraNoFim = (pasta: string): string => pasta.replace(/[\\/]+$/, '')
+
+/**
+ * A pasta de casa: `HOME` (macOS, Linux, Git Bash) ou `USERPROFILE` (Windows, onde o processo do app não tem `HOME`).
+ * Sem nenhuma das duas, recusa: o caminho viraria `undefined/.claude/…` relativo à pasta do projeto.
+ */
+async function pastaDeCasa($: EngineInterface): Promise<string> {
+  const casa = (await $.env.get('HOME')) || (await $.env.get('USERPROFILE'))
+  if (!casa) throw new Error('sem HOME nem USERPROFILE: não sei onde fica a ~/.claude')
+
+  return semBarraNoFim(casa)
+}
+
 async function pastaIchikawa($: EngineInterface): Promise<string> {
   const propria = await $.env.get('ICHIKAWA_HOME')
-  if (propria) return propria.replace(/\/+$/, '')
+  if (propria) return semBarraNoFim(propria)
 
-  return `${await $.env.get('HOME')}/.claude/ichikawa`
+  return `${await pastaDeCasa($)}/.claude/ichikawa`
 }
 
 async function pastaClaude($: EngineInterface): Promise<string> {
   const config = await $.env.get('CLAUDE_CONFIG_DIR')
 
-  return config ? config.replace(/\/+$/, '') : `${await $.env.get('HOME')}/.claude`
+  return config ? semBarraNoFim(config) : `${await pastaDeCasa($)}/.claude`
 }
 
 async function lerSeExiste($: EngineInterface, caminho: string): Promise<string | null> {
