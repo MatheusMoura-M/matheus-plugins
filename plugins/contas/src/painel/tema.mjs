@@ -19,7 +19,7 @@ async function lerDoKit(env, nome) {
   try {
     return await readFile(join(pastaDoKit(env), nome), 'utf8');
   } catch (e) {
-    if (env.MATHEUS_PLUGINS_HOME) throw e;
+    if (e?.code !== 'ENOENT' || env.MATHEUS_PLUGINS_HOME) throw e;
     return readFile(join(casa(env), '.claude', 'ichikawa', nome), 'utf8');
   }
 }

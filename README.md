@@ -369,7 +369,7 @@ claude plugin uninstall barra@ichikawa-plugins
 claude plugin marketplace remove ichikawa-plugins
 ```
 
-O estado da máquina (itens, perguntas, tema, modo ausente) vem junto sozinho: na primeira sessão com este kit, o orquestracao move `~/.claude/ichikawa/` para `~/.claude/matheus-plugins/` e deixa um link no lugar da antiga ([detalhe](docs/contratos.md#pasta-de-estado)). Quem tinha `ICHIKAWA_FORMATAR=0` troca por `MATHEUS_PLUGINS_FORMATAR=0`.
+O estado da máquina (itens, perguntas, tema, modo ausente) vem junto sozinho: na primeira sessão com este kit, o orquestracao move `~/.claude/ichikawa/` para `~/.claude/matheus-plugins/` e deixa um link no lugar da antiga; o que existir dos dois lados com conteúdo diferente fica em `migracao-conflitos/` ([detalhe](docs/contratos.md#pasta-de-estado)). Quem tinha `ICHIKAWA_FORMATAR=0` troca por `MATHEUS_PLUGINS_FORMATAR=0`.
 
 **Branches do kit.** A `develop` é o tronco, onde os PRs entram por squash. A `main` é o que as máquinas instalam. Neste repositório o release sai logo depois de cada PR mergeado. Não há `version` no `plugin.json`: a versão é o commit.
 
