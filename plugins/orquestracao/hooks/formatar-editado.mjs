@@ -26,31 +26,41 @@ function acharConfig(arquivo) {
   }
 }
 
-function acharBinario(raiz, ferramenta) {
+// No Windows o npm põe em .bin um .cmd e um script sh, e o Node não executa nenhum dos dois sem shell (EINVAL/ENOENT).
+// Sem abrir shell (o caminho do arquivo vem da ferramenta): roda o script JS do próprio pacote com o node.
+const SCRIPT_NO_PACOTE = { biome: join('@biomejs', 'biome', 'bin', 'biome'), prettier: join('prettier', 'bin', 'prettier.cjs') };
+
+function acharBinario(raiz, ferramenta, plataforma) {
   for (let pasta = raiz; ; pasta = dirname(pasta)) {
-    const bin = join(pasta, 'node_modules', '.bin', ferramenta);
-    if (existsSync(bin)) return bin;
+    const modulos = join(pasta, 'node_modules');
+    if (plataforma === 'win32') {
+      const script = join(modulos, SCRIPT_NO_PACOTE[ferramenta]);
+      if (existsSync(script)) return { bin: process.execPath, prefixo: [script] };
+    } else {
+      const bin = join(modulos, '.bin', ferramenta);
+      if (existsSync(bin)) return { bin, prefixo: [] };
+    }
     if (dirname(pasta) === pasta) return null;
   }
 }
 
 /** O comando que formata o arquivo editado, ou null quando não há o que fazer. */
-export function plano(entrada, ambiente = process.env) {
+export function plano(entrada, ambiente = process.env, plataforma = process.platform) {
   if (ambiente.ICHIKAWA_FORMATAR === '0') return null;
   const arquivo = caminhoDe(entrada);
-  if (!arquivo || arquivo.includes('/node_modules/') || !existsSync(arquivo)) return null;
+  if (!arquivo || /[\\/]node_modules[\\/]/.test(arquivo) || !existsSync(arquivo)) return null;
   const config = acharConfig(arquivo);
   if (!config) return null;
   if (!(config.ferramenta === 'biome' ? BIOME : PRETTIER).test(arquivo)) return null;
-  const bin = acharBinario(config.raiz, config.ferramenta);
-  if (!bin) return null;
+  const achado = acharBinario(config.raiz, config.ferramenta, plataforma);
+  if (!achado) return null;
   const alvo = relative(config.raiz, arquivo);
   const args = config.ferramenta === 'biome' ? ['format', '--write', alvo] : ['--write', alvo];
-  return { bin, args, cwd: config.raiz };
+  return { bin: achado.bin, args: [...achado.prefixo, ...args], cwd: config.raiz };
 }
 
-export function formatar(entrada, ambiente = process.env) {
-  const p = plano(entrada, ambiente);
+export function formatar(entrada, ambiente = process.env, plataforma = process.platform) {
+  const p = plano(entrada, ambiente, plataforma);
   if (!p) return false;
   const r = spawnSync(p.bin, p.args, { cwd: p.cwd, timeout: TEMPO_MAXIMO_MS, stdio: 'ignore' });
   return r.status === 0;

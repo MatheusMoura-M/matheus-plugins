@@ -1,6 +1,6 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync, mkdirSync, chmodSync, unlinkSync } from 'node:fs';
+import { existsSync, rmSync, mkdtempSync, readdirSync, readFileSync, writeFileSync, mkdirSync, chmodSync, unlinkSync } from 'node:fs';
 import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import * as estado from '../lib/estado.mjs';
@@ -476,7 +476,7 @@ test('console.log novo em código de produto avisa; teste, script, config, bin e
   assert.equal(avisoConsoleLog(edita('/repo/src/a.ts', '// console.log(1)\nconsole.error(2)')), null);
 });
 
-test('formatar roda o binário local só no arquivo editado, e só com configuração e sem o desligador', () => {
+test('formatar roda o binário local só no arquivo editado, e só com configuração e sem o desligador', { skip: process.platform === 'win32' && 'o binário falso é um script sh' }, () => {
   const projeto = mkdtempSync(join(tmpdir(), 'fmt-'));
   mkdirSync(join(projeto, 'node_modules', '.bin'), { recursive: true });
   mkdirSync(join(projeto, 'src'));
@@ -498,6 +498,26 @@ test('formatar roda o binário local só no arquivo editado, e só com configura
 
   unlinkSync(bin);
   assert.equal(planoDeFormato(entrada, {}), null, 'sem binário local não baixa nada');
+});
+
+test('formatar no Windows roda o script JS do pacote com o node, sem shell, e o arquivo editado vai como argumento', () => {
+  const projeto = mkdtempSync(join(tmpdir(), 'fmt-win-'));
+  mkdirSync(join(projeto, 'node_modules', 'prettier', 'bin'), { recursive: true });
+  mkdirSync(join(projeto, 'src'));
+  const registro = join(projeto, 'chamadas.txt');
+  writeFileSync(join(projeto, 'node_modules', 'prettier', 'bin', 'prettier.cjs'), `require('node:fs').appendFileSync(${JSON.stringify(registro)}, process.argv.slice(2).join(' ') + '\\n');`);
+  writeFileSync(join(projeto, '.prettierrc'), '{}');
+  const alvo = join(projeto, 'src', 'a & b.ts');
+  writeFileSync(alvo, 'x');
+  const entrada = { tool_input: { file_path: alvo } };
+
+  const p = planoDeFormato(entrada, {}, 'win32');
+  assert.equal(p.bin, process.execPath);
+  assert.deepEqual(p.args.slice(1), ['--write', join('src', 'a & b.ts')]);
+  assert.equal(formatar(entrada, {}, 'win32'), true);
+  assert.equal(readFileSync(registro, 'utf8').trim(), `--write ${join('src', 'a & b.ts')}`);
+  rmSync(join(projeto, 'node_modules', 'prettier'), { recursive: true });
+  assert.equal(planoDeFormato(entrada, {}, 'win32'), null, 'sem o pacote local não baixa nada');
 });
 
 test('passar-papel leva a orquestradora para o novo id depois do /clear, só na mesma pasta', async () => {
