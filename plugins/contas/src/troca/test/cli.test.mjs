@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { criarApp } from '../app-do-claude.mjs';
 import { principal, lerArgumentos } from '../cli.mjs';
-import { CONTA_A, CONTA_B, ORG, SENTINELAS, configDe, controleFalso, entrada, montar, textoDeConfig } from './fabrica.mjs';
+import { CONTA_A, CONTA_B, ORG, SENTINELAS, configDe, controleFalso, entrada, montar, textoDeConfig, COM_MODO } from './fabrica.mjs';
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), '..', 'cli.mjs');
 async function roda(m, argv, controle = controleFalso(), adicionarOpcoes = {}) {
@@ -138,7 +138,7 @@ describe('cli: ultima-acao.json', () => {
     assert.ok(u.mensagem.length > 0);
     assert.equal(u.mensagem, ad.saida.split('\n').at(-2), 'a dica depois da mensagem não é o desfecho');
     assert.ok(Date.parse(u.inicio) <= Date.parse(u.fim));
-    assert.equal(statSync(caminho(m)).mode & 0o777, 0o600);
+    if (COM_MODO) assert.equal(statSync(caminho(m)).mode & 0o777, 0o600);
 
     const nm = await roda(m, ['nomear', CONTA_A.slice(0, 8), 'Trabalho']);
     u = lido(m);
@@ -405,6 +405,30 @@ describe('cli: adicionar --voltar (F556)', () => {
       assert.equal(durante[s], antes[s] + 1, `${s}: na espera há um ouvinte do cancelamento`);
       assert.equal(process.listenerCount(s), antes[s], `${s}: solto no fim`);
     }
+    assert.match(m.lerConfig(), new RegExp(CONTA_A));
+  });
+
+  it('no Windows o painel cancela pelo arquivo cancelar-adicionar com o pid: o de pid morto sai, o de outro vivo fica, o deste cancela e volta', async () => {
+    const m = montar();
+    const pedido = join(m.dados, 'cancelar-adicionar');
+    const PID_MORTO = '999999999';
+    writeFileSync(pedido, String(process.pid)); // deste pid já no começo: é de um pid reaproveitado, some e não cancela esta
+    const vistos = [];
+    let n = 0;
+    const r = await roda(m, ['adicionar', '--voltar'], controleFalso(), rapido(async () => {
+      n++;
+      vistos.push(existsSync(pedido));
+      const esperarUmPouco = () => new Promise((ok) => setTimeout(ok, 700));
+      if (n === 1) { writeFileSync(pedido, PID_MORTO); await esperarUmPouco(); vistos.push(existsSync(pedido)); }
+      else if (n === 2) { writeFileSync(pedido, String(process.ppid)); await esperarUmPouco(); vistos.push(readFileSync(pedido, 'utf8')); }
+      else if (n === 3) { writeFileSync(pedido, String(process.pid)); await esperarUmPouco(); }
+    }));
+    assert.equal(r.codigo, 1, r.erro);
+    assert.match(r.erro, /cancelado/);
+    assert.deepEqual(vistos.slice(0, 4), [false, false, false, String(process.ppid)], 'o deste pid saiu no começo; o de pid morto saiu; o de outro vivo ficou para ele');
+    assert.equal(n, 3, 'cancelou na espera em que o pedido deste pid chegou');
+    assert.deepEqual([lido(m).codigo, lido(m).voltarPara], ['cancelado', CONTA_A]);
+    assert.equal(existsSync(pedido), false);
     assert.match(m.lerConfig(), new RegExp(CONTA_A));
   });
 

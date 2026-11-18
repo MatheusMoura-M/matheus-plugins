@@ -79,7 +79,7 @@ function desenharFaixas() {
 
   const erro = $('erro-geral');
   erro.hidden = !d?.erro;
-  erro.textContent = d?.erroCodigo === 'semConfig' ? 'Não achei o app do Claude neste Mac (o config.json dele não existe).' : d?.erroCodigo === 'formato' ? 'O app do Claude está num formato que o painel não conhece; nada será trocado.' : d?.erro ? `Não consegui ler as contas: ${d.erro}` : '';
+  erro.textContent = d?.erroCodigo === 'semConfig' ? 'Não achei o app do Claude neste computador (o config.json dele não existe).' : d?.erroCodigo === 'formato' ? 'O app do Claude está num formato que o painel não conhece; nada será trocado.' : d?.erro ? `Não consegui ler as contas: ${d.erro}` : '';
 
   const avisoCota = d && !d.erro ? avisoDaCota({ contas: d.contas, uso: d.uso, lendoUso: d.lendoUso }, agora) : null;
   const caixa = $('aviso-cota');
@@ -90,7 +90,7 @@ function desenharFaixas() {
 
   $('aviso-importar').hidden = !d?.importavel;
   const aviso = $('aviso-chave');
-  const frase = d ? fraseDaChave(d.lendoUso ? 'lendo' : d.chave) : '';
+  const frase = d ? fraseDaChave(d.lendoUso ? 'lendo' : d.chave, d.plataforma) : '';
   aviso.hidden = !frase;
   aviso.textContent = frase;
 }

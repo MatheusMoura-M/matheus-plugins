@@ -9,6 +9,7 @@ import { realpathSync } from 'node:fs';
 import { setTimeout as esperar } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { PASTA_DO_PLUGIN, PORTA_PADRAO, abrirNavegador, encerrarProcesso, processosNaPorta, saudeDoPainel, trocarPainelDeOutraVersao } from './cli.mjs';
+import { spawnPeloWmi } from './contas.mjs';
 
 const CLI = fileURLToPath(new URL('./cli.mjs', import.meta.url));
 const PRAZO_MS = 8000;
@@ -31,9 +32,16 @@ export function lerPorta(argv, env = process.env) {
   return { porta, semAbrir };
 }
 
-/** Sobe o painel num processo à parte, sem abrir navegador, desligado deste processo. */
+/**
+ * Sobe o painel num processo à parte, sem abrir navegador, desligado deste processo. No Windows, pelo WMI: fora do Job
+ * do pacote do app, o painel continua no ar quando a troca fecha e reabre o app (windows.mjs).
+ */
 function subirDesacoplado(porta) {
-  const filho = spawn(process.execPath, [CLI, '--porta', String(porta), '--sem-abrir'], { stdio: 'ignore', detached: true });
+  if (process.platform === 'win32') {
+    try { spawnPeloWmi(process.execPath, [CLI, '--porta', String(porta), '--sem-abrir']); } catch { /* a espera abaixo dá o erro */ }
+    return;
+  }
+  const filho = spawn(process.execPath, [CLI, '--porta', String(porta), '--sem-abrir'], { stdio: 'ignore', detached: true, windowsHide: true });
   filho.on('error', () => { /* a espera abaixo dá o erro */ });
   filho.unref();
 }

@@ -7,6 +7,7 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { setTimeout as esperar } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
+import { comandoDoPidNoWindows, pidsEscutandoNaPorta } from '../troca/windows.mjs';
 import { criarServidor } from './servidor.mjs';
 
 export const PORTA_PADRAO = 4791;
@@ -14,8 +15,10 @@ const PUBLICO = fileURLToPath(new URL('./publico', import.meta.url));
 const USO = 'uso: painel-de-contas [--porta N] [--sem-abrir]';
 /** A pasta deste plugin (no cache, uma por versão): é o que distingue o servidor desta versão do de outra. */
 export const PASTA_DO_PLUGIN = resolve(fileURLToPath(new URL('../..', import.meta.url)));
-// `node <pasta do plugin>/src/painel/cli.mjs …`: a linha de comando com que o painel sobe.
-const COMANDO_DO_PAINEL = /^\S*\bnode\s+(\/\S*\/contas(?:\/[^/\s]+)?)\/src\/painel\/cli\.mjs(?:\s|$)/;
+// `node <pasta do plugin>/src/painel/cli.mjs …`: a linha de comando com que o painel sobe. No Windows: `\`, `node.exe`,
+// aspas em volta de cada argumento e o `--import <solto.mjs>` de quem sobe pelo WMI (windows.mjs).
+// Entre aspas, a pasta pode ter espaço (C:\Users\Nome Sobrenome\…).
+const COMANDO_DO_PAINEL = /^(?:"[^"]*[\\/]node(?:\.exe)?"|\S*\bnode(?:\.exe)?)(?:\s+"?--import"?\s+"?[^"\s]+"?)?\s+(?:"((?:\/|[A-Za-z]:[\\/])[^"]*?[\\/]contas(?:[\\/][^\\/"]+)?)[\\/]src[\\/]painel[\\/]cli\.mjs"|((?:\/|[A-Za-z]:[\\/])[^"\s]*?[\\/]contas(?:[\\/][^\\/"\s]+)?)[\\/]src[\\/]painel[\\/]cli\.mjs)(?:\s|$)/;
 const PRAZO_PARA_SAIR_MS = 5000;
 const INTERVALO_MS = 100;
 
@@ -38,7 +41,9 @@ export function lerArgumentos(argv, env = process.env) {
 }
 
 export function abrirNavegador(url) {
-  const filho = spawn('open', [url], { stdio: 'ignore', detached: true });
+  const abridor = { darwin: 'open', win32: 'explorer.exe' }[process.platform];
+  if (!abridor) return; // sem abridor conhecido: o endereço já foi impresso
+  const filho = spawn(abridor, [url], { stdio: 'ignore', detached: true });
   filho.on('error', () => { /* sem navegador: o endereço já foi impresso */ });
   filho.unref();
 }
@@ -54,13 +59,17 @@ export async function saudeDoPainel(porta) {
 
 /** A pasta do plugin de quem rodou `node <pasta>/src/painel/cli.mjs`; `null` se a linha não é a do painel. */
 export function pastaDoServidorDoPainel(comando) {
-  return COMANDO_DO_PAINEL.exec(comando ?? '')?.[1] ?? null;
+  const m = COMANDO_DO_PAINEL.exec(comando ?? '');
+  return m ? (m[1] ?? m[2]) : null;
 }
 
-/** Processos escutando na porta, com a linha de comando de cada um (`lsof` + `ps`); vazio se não der para saber. */
+/** Processos escutando na porta, com a linha de comando de cada um (`lsof` + `ps`; no Windows, `netstat` + WMI); vazio se não der para saber. */
 export function processosNaPorta(porta) {
-  const ler = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const ler = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
   try {
+    if (process.platform === 'win32') {
+      return pidsEscutandoNaPorta(ler('netstat', ['-ano', '-p', 'TCP']), porta).map((pid) => ({ pid, comando: comandoDoPidNoWindows(pid) })).filter((p) => p.comando);
+    }
     const pids = ler('lsof', ['-nP', `-iTCP:${porta}`, '-sTCP:LISTEN', '-t']).split('\n').map(Number).filter((n) => Number.isInteger(n) && n > 0);
     return pids.map((pid) => { try { return { pid, comando: ler('ps', ['-o', 'command=', '-p', String(pid)]).trim() }; } catch { return null; } }).filter(Boolean);
   } catch { return []; }

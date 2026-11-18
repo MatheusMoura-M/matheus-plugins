@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, utimesSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { conversasEmAndamento, lerChavesDeCorte, limparMarca, organizacoesDa, sincronizar, tomarConversasCortadas, turnoAberto } from '../conversas.mjs';
 import { CONTA_A, CONTA_B, ORG, entrada, lerJson, montar } from './fabrica.mjs';
 
@@ -135,7 +135,7 @@ describe('conversas: sincronizar como espelho (F559)', () => {
     const origens = ['a1', 'a2'].map((id, i) => idade(entrada(m.sessoes, CONTA_A, ORG, id), BASE + i * 1000));
     assert.equal(sincronizar(m.sessoes, CONTA_B, ORG).gravadas, 2);
     origens.forEach((o, i) => {
-      const d = join(m.sessoes, CONTA_B, ORG, o.slice(o.lastIndexOf('/') + 1));
+      const d = join(m.sessoes, CONTA_B, ORG, basename(o));
       assert.equal(mtime(d), BASE + i * 1000);
     });
     assert.equal(sincronizar(m.sessoes, CONTA_A, ORG).gravadas, 0, 'a volta não reescreve');

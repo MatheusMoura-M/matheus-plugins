@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { chaveDe, decifrar, tokenDaConta, lerUso, atualizarUso, releituraSePreciso, estadoDaChave, estadoDoUso, aguardarUso, iniciarUso, lerCacheDeUso, lerSenhaDoKeychain, esquecerUso, ENDERECO, ENDERECO_DO_PERFIL, emailLimpo, emailsDasContas } from '../uso.mjs';
 import { lerContas } from '../contas.mjs';
 import { criarServidor } from '../servidor.mjs';
-import { montar, CONTA_A, CONTA_B, textoDeConfig, configDe } from '../../troca/test/fabrica.mjs';
+import { montar, CONTA_A, CONTA_B, textoDeConfig, configDe, COM_MODO } from '../../troca/test/fabrica.mjs';
 
 const PUBLICO = join(dirname(fileURLToPath(import.meta.url)), '..', 'publico');
 afterEach(() => esquecerUso());
@@ -31,15 +31,24 @@ const cacheDe = (conta, token, { expiresAt = AGORA + 86_400_000 } = {}) => ({
   [`acct:${conta}|org-1|user:profile user:inference`]: entrada(token, expiresAt),
 });
 
-/** A conta A logada no app, a B salva em contas/<uuid>/config.json; os dois logins cifrados com SENHA. */
-function ambiente({ cacheA = cacheDe(CONTA_A, TOKEN_A), cacheB = cacheDe(CONTA_B, TOKEN_B) } = {}) {
+/** O que o app do Windows grava: 'v10' + nonce de 12 + AES-256-GCM do JSON + tag de 16, em base64 (medido no app 5.11492). */
+const CHAVE_DO_WINDOWS = Buffer.alloc(32, 0x5a);
+function cifrarNoWindows(obj, chave = CHAVE_DO_WINDOWS) {
+  const nonce = Buffer.alloc(12, 3);
+  const c = createCipheriv('aes-256-gcm', chave, nonce);
+  const miolo = Buffer.concat([c.update(JSON.stringify(obj), 'utf8'), c.final()]);
+  return Buffer.concat([Buffer.from('v10'), nonce, miolo, c.getAuthTag()]).toString('base64');
+}
+
+/** A conta A logada no app, a B salva em contas/<uuid>/config.json; os dois logins cifrados com SENHA (ou com `cifra`). */
+function ambiente({ cacheA = cacheDe(CONTA_A, TOKEN_A), cacheB = cacheDe(CONTA_B, TOKEN_B), cifra = cifrar } = {}) {
   const m = montar();
-  writeFileSync(join(m.appDir, 'config.json'), textoDeConfig({ ...configDe(CONTA_A), 'oauth:tokenCacheV2': cifrar(cacheA) }));
+  writeFileSync(join(m.appDir, 'config.json'), textoDeConfig({ ...configDe(CONTA_A), 'oauth:tokenCacheV2': cifra(cacheA) }));
   const estado = { ativa: CONTA_A, contas: { [CONTA_A]: { nome: 'Pessoal' }, [CONTA_B]: { nome: 'Trabalho' } } };
   writeFileSync(join(m.dados, 'estado.json'), JSON.stringify(estado));
   for (const [id, cache] of [[CONTA_A, cacheA], [CONTA_B, cacheB]]) {
     mkdirSync(join(m.dados, 'contas', id), { recursive: true });
-    writeFileSync(join(m.dados, 'contas', id, 'config.json'), textoDeConfig({ ...configDe(id), 'oauth:tokenCacheV2': cifrar(cache) }));
+    writeFileSync(join(m.dados, 'contas', id, 'config.json'), textoDeConfig({ ...configDe(id), 'oauth:tokenCacheV2': cifra(cache) }));
   }
   return m;
 }
@@ -94,6 +103,35 @@ test('decifrar: ida e volta com senha falsa; prefixo, chave e base64 ruins recus
   assert.throws(() => decifrar(b64, chaveDe('senha-errada')), (e) => e instanceof Error && !e.message.includes('valor-secreto'));
 });
 
+test('decifrar no Windows: chave de 32 bytes é AES-256-GCM; tag, chave ou tamanho errados recusam sem repassar conteúdo', () => {
+  const b64 = cifrarNoWindows({ a: 'valor-secreto-123' });
+  assert.equal(decifrar(b64, CHAVE_DO_WINDOWS), JSON.stringify({ a: 'valor-secreto-123' }));
+  const bruto = Buffer.from(b64, 'base64');
+  const tagTrocada = Buffer.from(bruto); tagTrocada[tagTrocada.length - 1] ^= 1;
+  const cifraTrocada = Buffer.from(bruto); cifraTrocada[16] ^= 1;
+  const ruins = [tagTrocada.toString('base64'), cifraTrocada.toString('base64'), Buffer.from('v10curtinho').toString('base64')];
+  for (const ruim of ruins) assert.throws(() => decifrar(ruim, CHAVE_DO_WINDOWS), (e) => e instanceof Error && !e.message.includes('valor-secreto'));
+  assert.throws(() => decifrar(b64, Buffer.alloc(32, 1)), (e) => !e.message.includes('valor-secreto'));
+  assert.throws(() => decifrar(b64, chaveDe(SENHA)), (e) => !e.message.includes('valor-secreto'), 'o login do Windows não abre com a chave do Mac');
+});
+
+test('atualizarUso com lerChave (o caminho do Windows): os bytes valem direto, sem senha, e leem as contas', async () => {
+  const m = ambiente({ cifra: cifrarNoWindows });
+  let pediu = 0;
+  const lerSenha = async () => { throw new Error('não devia pedir senha'); };
+  const r = await atualizarUso(opcoes(m, { lerSenha, lerChave: async () => { pediu++; return Buffer.from(CHAVE_DO_WINDOWS); } }));
+  assert.equal(r.ok, true);
+  assert.equal(pediu, 1);
+  assert.equal(r.uso[CONTA_A].sessao, 51);
+  assert.equal(r.uso[CONTA_B].semana, 37);
+  esquecerUso();
+  const n = await atualizarUso(opcoes(m, { lerChave: async () => { throw Object.assign(new Error('x'), { motivo: 'semSecurity' }); } }));
+  assert.equal(n.codigo, 'negada');
+  assert.equal(estadoDoUso().chaveMotivo, 'semSecurity');
+  esquecerUso();
+  assert.equal((await atualizarUso(opcoes(m, { lerChave: async () => null }))).codigo, 'negada', 'sem bytes é negada');
+});
+
 // ---- escolha do token ----
 test('tokenDaConta: o de maior expiresAt entre os não vencidos da conta com user:profile; senão null', () => {
   const cache = {
@@ -137,7 +175,7 @@ test('lerUso: a ativa lê o config do app, a salva o login guardado; chamada com
   assert.deepEqual(disco[CONTA_A], { sessao: 51, sessaoReinicia: '2026-11-08T16:10:00.000Z', semana: 37, semanaReinicia: '2026-11-14T00:00:00.000Z', lidoEm: hoje, erro: null, email: null });
   assert.equal(disco[CONTA_B].sessao, 0);
   assert.equal(disco[CONTA_B].semana, 12);
-  assert.equal(statSync(join(m.dados, 'uso.json')).mode & 0o777, 0o600);
+  if (COM_MODO) assert.equal(statSync(join(m.dados, 'uso.json')).mode & 0o777, 0o600);
   const bruto = readFileSync(join(m.dados, 'uso.json'), 'utf8');
   for (const proibido of [TOKEN_A, TOKEN_B, `REFRESH-${TOKEN_A}`, SENHA, 'Bearer']) assert.ok(!bruto.includes(proibido), `uso.json guardou ${proibido}`);
   assert.deepEqual(lerCacheDeUso(m.env), disco);
@@ -761,7 +799,7 @@ test('o perfil dá o e-mail na primeira leitura, vai ao cache 0600 e não se bus
   assert.equal(disco[CONTA_A].email, 'pessoal@exemplo.com');
   assert.equal(disco[CONTA_B].email, 'trabalho@exemplo.com');
   assert.equal(disco[CONTA_A].sessao, 51, 'o uso segue lido');
-  assert.equal(statSync(join(m.dados, 'uso.json')).mode & 0o777, 0o600);
+  if (COM_MODO) assert.equal(statSync(join(m.dados, 'uso.json')).mode & 0o777, 0o600);
   const texto = readFileSync(join(m.dados, 'uso.json'), 'utf8');
   assert.ok(texto.length > 0);
   for (const segredo of [TOKEN_A, TOKEN_B, SENHA, 'Ignorado']) assert.ok(!texto.includes(segredo), `não grava ${segredo}`);

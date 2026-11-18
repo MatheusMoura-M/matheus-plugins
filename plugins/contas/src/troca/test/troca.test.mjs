@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { criarApp } from '../app-do-claude.mjs';
 import { criarTroca, ErroDeTroca } from '../troca.mjs';
 import { lerResiduo } from '../conversas.mjs';
-import { CONTA_A, CONTA_B, ORG, controleFalso, entrada, lerJson, montar, textoDeConfig, configDe } from './fabrica.mjs';
+import { CONTA_A, CONTA_B, ORG, controleFalso, entrada, lerJson, montar, textoDeConfig, configDe, COM_MODO } from './fabrica.mjs';
 
 /** A (ativa, com uma conversa) e B (login salvo, com outra conversa), pelo caminho de verdade: adicionar, "entrar" com B, voltar. */
 async function duasContas(opcoes = {}) {
@@ -99,10 +99,10 @@ describe('troca: fluxo completo', () => {
     const { m, troca } = await duasContas();
     await troca.adicionar();
     const modo = (p) => statSync(p).mode & 0o777;
-    assert.equal(modo(join(m.dados, 'contas')), 0o700);
-    assert.equal(modo(join(m.dados, 'contas', CONTA_A)), 0o700);
-    assert.equal(modo(join(m.dados, 'backups')), 0o700);
-    for (const f of ['estado.json', join('contas', CONTA_A, 'config.json'), join('contas', CONTA_A, 'Cookies')]) assert.equal(modo(join(m.dados, f)), 0o600, f);
+    if (COM_MODO) assert.equal(modo(join(m.dados, 'contas')), 0o700);
+    if (COM_MODO) assert.equal(modo(join(m.dados, 'contas', CONTA_A)), 0o700);
+    if (COM_MODO) assert.equal(modo(join(m.dados, 'backups')), 0o700);
+    if (COM_MODO) for (const f of ['estado.json', join('contas', CONTA_A, 'config.json'), join('contas', CONTA_A, 'Cookies')]) assert.equal(modo(join(m.dados, f)), 0o600, f);
   });
 
   it('o estado.json não tem token', async () => {
@@ -605,7 +605,7 @@ describe('troca: adicionar com voltar (F556)', () => {
       assert.equal(v.lido.desde, iso(inicio));
       assert.equal(v.lido.faseDesde, iso(inicio + 5000), 'a espera começa depois do primeiro fechamento');
       assert.equal(v.lido.prazoEm, iso(inicio + 5000 + PRAZO));
-      assert.equal(v.modo, 0o600);
+      if (COM_MODO) assert.equal(v.modo, 0o600);
       assert.ok(!v.bruto.includes('SENTINELA'));
       assert.equal(v.trava, String(process.pid), 'a trava está presa durante a espera');
     }

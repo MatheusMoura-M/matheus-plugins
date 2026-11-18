@@ -2,9 +2,9 @@
 // (turno aberto no transcrito) e quais o app vai continuar sozinho depois de uma troca (marca de corte).
 // Só lê: a lista de conversas do app e a cauda dos transcritos em `~/.claude/projects`. Não grava nada.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { pastaDeProjetos } from '../troca/app-do-claude.mjs';
-import { conversasEmAndamento } from '../troca/conversas.mjs';
+import { conversasEmAndamento, pastaDoCwd as pastaDe } from '../troca/conversas.mjs';
 
 /** Conversa mexida há mais que isso não entra na lista do painel. */
 export const JANELA_MS = 24 * 60 * 60 * 1000;
@@ -17,7 +17,6 @@ const CACHE_MS = 10_000;
 
 const subpastas = (dir) => { try { return readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name); } catch { return []; } };
 const entradas = (dir) => { try { return readdirSync(dir).filter((n) => n.startsWith('local_') && n.endsWith('.json')); } catch { return []; } };
-const pastaDe = (cwd) => (typeof cwd === 'string' && cwd ? cwd.replace(/\/+$/, '').split('/').pop() : '');
 
 let cache = { chave: '', em: 0, valor: null };
 
@@ -31,7 +30,7 @@ function resumoDaEntrada(caminho) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj) || obj.isArchived === true) return null;
   const cwd = typeof obj.originCwd === 'string' && obj.originCwd ? obj.originCwd : obj.cwd;
   return {
-    id: typeof obj.sessionId === 'string' ? obj.sessionId : caminho.slice(caminho.lastIndexOf('/') + 1, -'.json'.length),
+    id: typeof obj.sessionId === 'string' ? obj.sessionId : basename(caminho, '.json'),
     cli: typeof obj.cliSessionId === 'string' ? obj.cliSessionId : '',
     titulo: (typeof obj.title === 'string' && obj.title.trim()) || pastaDe(cwd) || '(sem título)',
     pasta: pastaDe(cwd),

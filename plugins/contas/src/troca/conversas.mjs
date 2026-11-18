@@ -3,8 +3,11 @@
 // Port de sessions.go (ver NOTICE).
 import { createHash } from 'node:crypto';
 import { chmodSync, closeSync, copyFileSync, existsSync, fstatSync, openSync, readFileSync, readSync, readdirSync, renameSync, rmSync, statSync, utimesSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { clonarArquivo, copiarArquivo, criarPasta, escreverAtomico } from './app-do-claude.mjs';
+
+/** O último pedaço do cwd de uma conversa (`/Users/x/projeto` ou `C:\Users\x\projeto` → `projeto`); vazio sem cwd. */
+export const pastaDoCwd = (cwd) => (typeof cwd === 'string' && cwd ? cwd.replace(/[\\/]+$/, '').split(/[\\/]/).pop() : '');
 
 /** As chaves da marca que o app põe nas conversas que parou no meio do turno ao fechar. */
 export const CHAVES_DE_CORTE = ['interruptedByQuitAt', 'interruptedUnseenResume', 'interruptedAwaitingPerson'];
@@ -20,7 +23,7 @@ export function lerEntrada(caminho) {
   const texto = readFileSync(caminho, 'utf8');
   const obj = JSON.parse(texto);
   if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) throw new Error(`${caminho} não é um objeto`);
-  const nome = caminho.slice(caminho.lastIndexOf('/') + 1);
+  const nome = basename(caminho);
   return {
     caminho, nome, obj, texto,
     cli: typeof obj.cliSessionId === 'string' ? obj.cliSessionId : '',
@@ -38,7 +41,7 @@ export function lerResumo(caminho) {
   if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) throw new Error(`${caminho} não é um objeto`);
   return {
     caminho,
-    nome: caminho.slice(caminho.lastIndexOf('/') + 1),
+    nome: basename(caminho),
     cli: typeof obj.cliSessionId === 'string' ? obj.cliSessionId : '',
     atividade: Number.isFinite(obj.lastActivityAt) ? obj.lastActivityAt : 0,
     corte: typeof obj.interruptedByQuitAt === 'number' ? obj.interruptedByQuitAt : undefined,
@@ -379,7 +382,7 @@ export function tomarConversasCortadas(raiz, conta, orgs, desde, andamento = new
     let obj = {};
     try { obj = lerEntrada(dst.caminho).obj; } catch { /* ilegível: sem título */ }
     const cwd = typeof obj.originCwd === 'string' && obj.originCwd ? obj.originCwd : (typeof obj.cwd === 'string' ? obj.cwd : '');
-    const pasta = cwd ? cwd.replace(/\/+$/, '').split('/').pop() : '';
+    const pasta = pastaDoCwd(cwd);
     cortadas.push({ caminho: dst.caminho, titulo: (typeof obj.title === 'string' && obj.title) || pasta, pasta });
   }
   return cortadas.sort((a, b) => (a.titulo < b.titulo ? -1 : a.titulo > b.titulo ? 1 : 0));

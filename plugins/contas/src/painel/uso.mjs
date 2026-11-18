@@ -1,7 +1,8 @@
 // O uso de cada conta do app do Claude no painel: as janelas de 5 h e da semana, lidas de
 // `GET api.anthropic.com/api/oauth/usage` com o token de cada conta. Na mesma volta, o e-mail da conta que o cache ainda
 // não tem sai de `GET /api/oauth/profile` (fatia 5); sem gesto, o `.claude.json` do Claude Code dá o e-mail da conta dele.
-// Segredo: a senha do Keychain vira uma chave derivada e é descartada; a chave fica só na memória deste processo.
+// Segredo: no Mac, a senha do Keychain vira uma chave derivada e é descartada; no Windows, a chave vem do `Local State`
+// aberta pela DPAPI (windows.mjs). A chave fica só na memória deste processo.
 // O token fica só na memória da chamada. Nada disso vai a arquivo, log, resposta ou mensagem de erro: o `uso.json`
 // guarda só números, horários, o código do erro e o e-mail da conta.
 import { createDecipheriv, pbkdf2Sync } from 'node:crypto';
@@ -11,6 +12,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { criarApp, escreverAtomico, idSeguro, pastaDeDados } from '../troca/app-do-claude.mjs';
 import { criarTroca } from '../troca/troca.mjs';
+import { lerChaveDoWindows } from '../troca/windows.mjs';
 
 export const ENDERECO = 'https://api.anthropic.com/api/oauth/usage';
 export const ENDERECO_DO_PERFIL = 'https://api.anthropic.com/api/oauth/profile';
@@ -43,12 +45,24 @@ export const aguardarUso = () => (E.curso ?? Promise.resolve()).then(() => undef
 /** A chave do Chromium no Mac: PBKDF2-SHA1(senha, `saltysalt`, 1003 voltas, 16 bytes). */
 export const chaveDe = (senha) => pbkdf2Sync(senha, 'saltysalt', 1003, 16, 'sha1');
 
-/** Decifra um valor `v10…` (AES-128-CBC, IV de 16 espaços) em base64. O erro nunca leva o valor, a chave nem o texto. */
+const NONCE_DO_GCM = 12;
+const TAG_DO_GCM = 16;
+
+/**
+ * Decifra um valor `v10…` em base64; o tamanho da chave diz o formato. 16 bytes (Mac): AES-128-CBC com IV de 16 espaços.
+ * 32 bytes (Windows): AES-256-GCM, `v10` + nonce de 12 + cifra + tag de 16. O erro nunca leva o valor, a chave nem o texto.
+ */
 export function decifrar(b64, chave) {
   try {
     if (typeof b64 !== 'string' || !b64) throw new Error();
     const bruto = Buffer.from(b64, 'base64');
     if (bruto.length <= 3 || bruto.subarray(0, 3).toString('latin1') !== 'v10') throw new Error();
+    if (chave?.length === 32) {
+      if (bruto.length < 3 + NONCE_DO_GCM + TAG_DO_GCM) throw new Error();
+      const d = createDecipheriv('aes-256-gcm', chave, bruto.subarray(3, 3 + NONCE_DO_GCM));
+      d.setAuthTag(bruto.subarray(bruto.length - TAG_DO_GCM));
+      return Buffer.concat([d.update(bruto.subarray(3 + NONCE_DO_GCM, bruto.length - TAG_DO_GCM)), d.final()]).toString('utf8');
+    }
     const d = createDecipheriv('aes-128-cbc', chave, Buffer.alloc(16, ' '));
     return Buffer.concat([d.update(bruto.subarray(3)), d.final()]).toString('utf8');
   } catch { throw new Error('não consegui decifrar o login guardado'); }
@@ -271,18 +285,29 @@ export function lerUso({ env = process.env, app, fetch = globalThis.fetch, agora
  * O gesto "Mostrar uso": lê a chave do Keychain se ainda não está na memória (o aviso do macOS pode levar até 60 s) e relê
  * todas as contas. `{ ok: true, chave: 'pronta', uso }`, ou `{ ok: false, codigo }` com `negada`, `ocupado`, `sem` (a chave não abriu nenhum login e foi descartada) ou `outro`.
  */
-export function atualizarUso({ env = process.env, app, lerSenha = lerSenhaDoKeychain, fetch = globalThis.fetch, agora = Date.now } = {}) {
+/**
+ * A chave que abre os logins, ou `null`. `lerChave` (os bytes) vale se veio; `lerSenha` (a senha do Keychain) segue o
+ * caminho do Mac; sem nenhum dos dois, o da plataforma. A senha sai de escopo aqui: só a chave derivada volta.
+ */
+async function obterChave({ lerChave, lerSenha, dir }) {
+  if (lerChave) return lerChave();
+  if (!lerSenha && process.platform === 'win32') return lerChaveDoWindows({ dir });
+  const senha = await (lerSenha ?? lerSenhaDoKeychain)();
+  const limpa = typeof senha === 'string' ? senha.replace(/\r?\n$/, '') : '';
+  return limpa ? chaveDe(limpa) : null;
+}
+
+export function atualizarUso({ env = process.env, app, lerSenha, lerChave, fetch = globalThis.fetch, agora = Date.now } = {}) {
   return exclusivo(async () => {
     let contas;
     try { contas = contasParaLer(env, appDe(env, app)); } catch { return { ok: false, codigo: 'outro' }; }
     if (!E.bytes) {
       E.chave = 'lendo'; E.chaveMotivo = null; E.chaveDesde = new Date(agora()).toISOString();
-      let senha = null;
+      let bytes = null;
       let motivo = 'negou';
-      try { senha = await lerSenha(); } catch (e) { senha = null; if (e?.motivo === 'semResposta' || e?.motivo === 'semSecurity') motivo = e.motivo; }
-      senha = typeof senha === 'string' ? senha.replace(/\r?\n$/, '') : '';
-      if (!senha) { E.chave = 'negada'; E.chaveMotivo = motivo; return { ok: false, codigo: 'negada' }; }
-      E.bytes = chaveDe(senha); // a senha sai de escopo aqui; só a chave derivada fica
+      try { bytes = await obterChave({ lerChave, lerSenha, dir: appDe(env, app).dir }); } catch (e) { bytes = null; if (e?.motivo === 'semResposta' || e?.motivo === 'semSecurity') motivo = e.motivo; }
+      if (!Buffer.isBuffer(bytes) || !bytes.length) { E.chave = 'negada'; E.chaveMotivo = motivo; return { ok: false, codigo: 'negada' }; }
+      E.bytes = bytes;
       E.chave = 'pronta'; E.chaveMotivo = null;
     }
     try {

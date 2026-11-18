@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import { join } from 'node:path';
 import { criarApp } from '../app-do-claude.mjs';
 import { backup, limparLogin, podarBackups, restaurarBackup, restaurarPerfil, salvarPerfil } from '../perfis.mjs';
-import { CONTA_A, CONTA_B, configDe, controleFalso, montar, textoDeConfig } from './fabrica.mjs';
+import { CONTA_A, CONTA_B, configDe, controleFalso, montar, textoDeConfig, COM_MODO } from './fabrica.mjs';
 
 const novo = (opts) => { const m = montar(opts); return { m, app: criarApp({ dir: m.appDir, controle: controleFalso() }) }; };
 const modo = (p) => statSync(p).mode & 0o777;
@@ -18,8 +18,8 @@ describe('perfis: salvar e restaurar', () => {
     assert.deepEqual(Object.keys(salvo).sort(), ['lastKnownAccountUuid', 'oauth:tokenCache', 'oauth:tokenCacheV2']);
     assert.equal(salvo['oauth:tokenCacheV2'], 'SENTINELA-V2-A');
     assert.equal(readFileSync(join(dir, 'Cookies'), 'utf8'), 'SENTINELA-COOKIE-A');
-    assert.equal(modo(dir), 0o700);
-    for (const f of readdirSync(dir)) assert.equal(modo(join(dir, f)), 0o600, f);
+    if (COM_MODO) assert.equal(modo(dir), 0o700);
+    if (COM_MODO) for (const f of readdirSync(dir)) assert.equal(modo(join(dir, f)), 0o600, f);
   });
 
   it('ida e volta deixa o config.json idêntico byte a byte e os cookies de cada conta no lugar', () => {
@@ -101,7 +101,7 @@ describe('perfis: backup', () => {
     const raiz = join(m.dados, 'backups');
     const bk = backup(app, raiz, new Date(2026, 10, 7, 10, 0, 0));
     assert.ok(readdirSync(bk).includes('config.json') && readdirSync(bk).includes('Cookies'));
-    assert.equal(modo(bk), 0o700);
+    if (COM_MODO) assert.equal(modo(bk), 0o700);
     limparLogin(app);
     assert.notEqual(m.lerConfig(), original);
     restaurarBackup(app, bk);

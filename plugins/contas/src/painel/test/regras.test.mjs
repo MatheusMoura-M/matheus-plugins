@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { desfecho, erroDoUso, fraseDoAndamento, haQuanto, identidade, janelas, matizDoUso, ordenarContas, percentual, quando, validarNome } from '../publico/regras.js';
+import { desfecho, erroDoUso, fraseDaChave, fraseDoAndamento, haQuanto, identidade, janelas, matizDoUso, ordenarContas, percentual, quando, validarNome } from '../publico/regras.js';
 
 // 12/11/2026 12:00 em São Paulo (UTC−3).
 const AGORA = Date.parse('2026-11-12T15:00:00.000Z');
@@ -110,4 +110,15 @@ test('a cor da barra vai do verde (livre) ao vermelho (no limite), pelo matiz', 
   assert.ok(matizDoUso(30) >= 110, '30% ainda é verde');
   assert.equal(matizDoUso(150), 0);
   assert.equal(matizDoUso(-5), 140);
+});
+
+test('fraseDaChave: Keychain no Mac, a chave da conta do Windows no Windows; lendo e pronta iguais nos dois', () => {
+  assert.match(fraseDaChave('sem', 'darwin'), /Keychain/);
+  assert.match(fraseDaChave('sem'), /Keychain/, 'sem plataforma (servidor antigo): a frase do Mac');
+  assert.match(fraseDaChave('sem', 'win32'), /conta do Windows/);
+  assert.doesNotMatch(fraseDaChave('sem', 'win32'), /Keychain|macOS|Permitir/);
+  assert.doesNotMatch(fraseDaChave('negada', 'win32'), /Keychain|Permitir/);
+  assert.equal(fraseDaChave('lendo', 'win32'), fraseDaChave('lendo', 'darwin'));
+  assert.equal(fraseDaChave('pronta', 'win32'), '');
+  assert.equal(fraseDaChave('outra', 'win32'), '');
 });

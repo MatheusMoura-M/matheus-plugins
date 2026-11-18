@@ -68,3 +68,6 @@ export function entrada(sessoes, conta, org, id, campos = {}) {
 }
 
 export const lerJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
+
+/** O Windows não guarda os bits 0600/0700 (o `stat` diz 0666/0777): lá a pasta do usuário já é só dele pela ACL, e a asserção de modo fica de fora. */
+export const COM_MODO = process.platform !== 'win32';

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // `trocar-conta`: troca a conta do app desktop do Claude mantendo a lista de conversas do Code. Nunca imprime token.
-import { realpathSync } from 'node:fs';
+import { readFileSync, realpathSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { criarApp, controleReal, escreverAtomico, pastaDeDados } from './app-do-claude.mjs';
+import { ARQUIVO_DE_CANCELAR, criarApp, controleReal, escreverAtomico, pastaDeDados } from './app-do-claude.mjs';
 import { criarTroca, ErroDeTroca } from './troca.mjs';
 import { haParaImportar, importar, pastaDoKit } from './importar.mjs';
 
@@ -57,11 +57,29 @@ function segurarSinais(erro) {
   return () => { for (const s of SINAIS) process.off(s, aviso); };
 }
 
-/** No "adicionar e voltar" o sinal cancela a espera e o app volta para a conta de antes; o processo não morre no meio. */
-function cancelarComSinais(erro, controlador) {
-  const cancelar = () => { erro('  cancelando: o Claude volta para a conta de antes'); controlador.abort(); };
+const INTERVALO_DO_PEDIDO_MS = 500;
+const vivo = (pid) => { if (!Number.isInteger(pid) || pid <= 0) return false; try { process.kill(pid, 0); return true; } catch (e) { return e.code === 'EPERM'; } };
+
+/**
+ * No "adicionar e voltar" o sinal cancela a espera e o app volta para a conta de antes; o processo não morre no meio.
+ * No Windows o painel não tem sinal que o Node pegue: ele grava `cancelar-adicionar` com o pid, conferido aqui a cada
+ * meio segundo. O pedido de outro processo vivo fica para ele (um segundo "adicionar" que vai sair `ocupado` não pode
+ * apagar o cancelamento do primeiro); o de processo morto é velho e sai. O deste pid, no começo, é de um pid reaproveitado.
+ */
+function cancelarComSinais(erro, controlador, pedido) {
+  const cancelar = () => { if (controlador.signal.aborted) return; erro('  cancelando: o Claude volta para a conta de antes'); controlador.abort(); };
   for (const s of SINAIS) process.on(s, cancelar);
-  return () => { for (const s of SINAIS) process.off(s, cancelar); };
+  const lerPedido = () => { try { return readFileSync(pedido, 'utf8').trim(); } catch { return null; } };
+  const deOutroVivo = (pid) => pid !== String(process.pid) && vivo(Number.parseInt(pid, 10));
+  const velho = lerPedido();
+  if (velho !== null && !deOutroVivo(velho)) rmSync(pedido, { force: true });
+  const vigia = setInterval(() => {
+    const pid = lerPedido();
+    if (pid === null || deOutroVivo(pid)) return;
+    rmSync(pedido, { force: true });
+    if (pid === String(process.pid)) cancelar();
+  }, INTERVALO_DO_PEDIDO_MS);
+  return () => { clearInterval(vigia); for (const s of SINAIS) process.off(s, cancelar); };
 }
 
 /** Devolve o código de saída. `controle`, `app` e `adicionarOpcoes` (prazo, intervalo, `esperar`) entram nos testes; `env` aponta as pastas. */
@@ -88,12 +106,12 @@ export async function principal({ argv = [], env = process.env, saida: saidaReal
   try {
     const troca = criarTroca({
       env,
-      app: app ?? criarApp({ dir: env.CLAUDE_APP_DIR || undefined, controle: controle ?? controleReal() }),
+      app: app ?? criarApp({ dir: env.CLAUDE_APP_DIR || undefined, controle: controle ?? controleReal({ log: (t) => erro(`  ${t}`) }) }),
       log: (t) => erro(`  ${t}`),
     });
     const [cmd, ...resto] = a.pos;
     const controlador = new AbortController();
-    if (cmd === 'adicionar' && a.voltar) soltar = cancelarComSinais(erro, controlador);
+    if (cmd === 'adicionar' && a.voltar) soltar = cancelarComSinais(erro, controlador, join(pastaDeDados(env), ARQUIVO_DE_CANCELAR));
     else if (cmd !== undefined && cmd !== 'nomear' && cmd !== 'enxugar' && cmd !== 'importar-do-kit') soltar = segurarSinais(erro);
     if (cmd === undefined) {
       const e = troca.estado();

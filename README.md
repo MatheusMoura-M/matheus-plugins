@@ -67,7 +67,7 @@ Os plugins não importam código uns dos outros. Eles se encontram só por arqui
 | [`stack`](#stack) | Skills de consulta e agentes revisores de React/TS, Next, Vite, Tailwind, API, Postgres, deploy, Google Cloud, segurança, desempenho e SEO, com o Context7 | conta |
 | [`barra`](#barra) | A barra acima do prompt: cache de 1 h, tema, modo ausente e os botões dos outros plugins | conta |
 | [`design-wicomm`](#design-wicomm) | Design system dos apps React **internos da Wicomm**: base, tema, designer, crítico e auditoria | só no projeto interno |
-| [`contas`](#contas) | Painel local com a cota de cada conta do app do Claude e a troca de conta sem Sign out (macOS) | conta |
+| [`contas`](#contas) | Painel local com a cota de cada conta do app do Claude e a troca de conta sem Sign out (macOS e Windows) | conta |
 
 ---
 
@@ -321,30 +321,31 @@ Configuração e testes: [`plugins/design-wicomm/README.md`](plugins/design-wico
 </p>
 <p align="center"><sub>O painel de contas (<code>http://127.0.0.1:4791</code>) com contas de exemplo.</sub></p>
 
-**O que faz.** Para quem usa mais de uma conta no app desktop do Claude no Mac:
+**O que faz.** Para quem usa mais de uma conta no app desktop do Claude, no macOS e no Windows:
 
 - **A cota de cada conta:** as janelas de 5 h e da semana lado a lado, com a hora em que cada uma zera.
 - **Troca de conta sem Sign out** e sem código por e-mail a cada troca. O app fecha e abre de novo na conta escolhida em uns 5 s.
 - **As sessões do Code continuam na conta nova:** a lista de conversas vem junto, e as que estavam respondendo quando o app fechou são retomadas sozinhas.
 
-Tudo roda em `127.0.0.1`, sem dependência npm (Node ≥ 20, só macOS).
+Tudo roda em `127.0.0.1`, sem dependência npm (Node ≥ 20, macOS e Windows).
 
 ### Como usar
 
 - Botão **◉ Contas** da barra, ou `painel-de-contas` no terminal (`node src/painel/cli.mjs` dentro de `plugins/contas`).
-- No painel: **Ler cota** (pede uma vez a senha "Claude Safe Storage" do Keychain; clique em **Permitir**, não em Permitir Sempre), **Adicionar conta**, **Trocar para esta**, **Dar nome**, **Sincronizar lista**.
+- No painel: **Ler cota** (no Mac, pede uma vez a senha "Claude Safe Storage" do Keychain: clique em **Permitir**, não em Permitir Sempre; no Windows, não pergunta nada), **Adicionar conta**, **Trocar para esta**, **Dar nome**, **Sincronizar lista**.
 - No terminal: `trocar-conta`, `trocar-conta <conta>`, `trocar-conta adicionar [--voltar]`, `trocar-conta sincronizar`, `trocar-conta enxugar [--aplicar]`, `trocar-conta importar-do-kit`.
 - Dentro de uma sessão, a skill `contas:trocar-conta` lista as contas e abre o painel, mas **nunca troca de dentro da sessão**: a troca fecha o app.
 
 ### Avisos
 
 - ⚠️ **Nunca use Sign out no app para trocar de conta.** Ele invalida o login guardado daquela conta.
-- ⚠️ **A troca fecha o app.** Rode o painel de um terminal, não de dentro do Code do app.
+- ⚠️ **A troca fecha o app** e corta as sessões do Code abertas nele (o app retoma as que estavam respondendo). No Mac, rode o painel de um terminal, não de dentro do Code do app; no Windows, a troca é lançada fora do app e o botão da barra serve.
+- No Windows, com o Claude Account Switcher original instalado: ele usa a mesma pasta de dados. Use um só para trocar de conta.
 - Login guardado envelhece: se o app pedir para entrar de novo, entre com o código do e-mail e use **Adicionar conta** com ela aberta.
 - Se o app mudar o formato do `config.json` numa atualização, a troca recusa sem gravar nada.
 - Termos de uso: ter várias contas não é proibido, mas usar contas para contornar limite pode ferir as regras do plano. Por isso não há troca automática.
 
-**Quando não usar:** com uma conta só, ou fora do macOS. Os logins ficam em `~/.claude-account-switcher/` (pastas `0700`, arquivos `0600`); o conteúdo das conversas nunca é tocado. Detalhes: [`plugins/contas/README.md`](plugins/contas/README.md). A lógica de troca é um port do [Claude Account Switcher](https://github.com/SnlperStripes/claude-account-switcher) (Apache-2.0).
+**Quando não usar:** com uma conta só, ou no Linux. Os logins ficam em `~/.claude-account-switcher/` (no Mac, pastas `0700` e arquivos `0600`; no Windows, a permissão da pasta do usuário); o conteúdo das conversas nunca é tocado. Detalhes: [`plugins/contas/README.md`](plugins/contas/README.md). A lógica de troca é um port do [Claude Account Switcher](https://github.com/SnlperStripes/claude-account-switcher) (Apache-2.0).
 
 ---
 

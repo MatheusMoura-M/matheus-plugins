@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { closeSync, existsSync, fsyncSync, openSync, readFileSync, statSync, statfsSync, utimesSync, writeFileSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import { clonarArquivo, controleReal, copiarArquivo, criarApp, escreverAtomico, idSeguro, lerObjetoConferido, pastaDeDados, pastaDoApp } from '../app-do-claude.mjs';
-import { CONTA_A, controleFalso, montar, textoDeConfig } from './fabrica.mjs';
+import { CONTA_A, controleFalso, montar, textoDeConfig, COM_MODO } from './fabrica.mjs';
 
 describe('app-do-claude: caminhos', () => {
   it('CLAUDE_APP_DIR e TROCA_DE_CONTA_DIR trocam as pastas; o padrão fica na pasta pessoal', () => {
     assert.equal(pastaDoApp({ CLAUDE_APP_DIR: '/tmp/x-app' }), '/tmp/x-app');
     assert.equal(pastaDeDados({ TROCA_DE_CONTA_DIR: '/tmp/x-dados' }), '/tmp/x-dados');
-    assert.match(pastaDoApp({}), /Library\/Application Support\/Claude$/);
+    assert.match(pastaDoApp({}, 'darwin'), /[\\/]Library[\\/]Application Support[\\/]Claude$/);
     assert.match(pastaDeDados({}), /\.claude-account-switcher$/);
   });
 
@@ -87,11 +87,11 @@ describe('app-do-claude: config.json', () => {
     const cfg = app.lerConfig();
     cfg.theme = 'light';
     app.gravarConfig(cfg);
-    assert.equal(statSync(join(m.appDir, 'config.json')).mode & 0o777, 0o600);
+    if (COM_MODO) assert.equal(statSync(join(m.appDir, 'config.json')).mode & 0o777, 0o600);
     assert.equal(existsSync(join(m.appDir, 'config.json.troca-tmp')), false);
     assert.equal(JSON.parse(m.lerConfig()).theme, 'light');
     escreverAtomico(join(m.dados, 'sub', 'a.txt'), 'x');
-    assert.equal(statSync(join(m.dados, 'sub')).mode & 0o777, 0o700);
+    if (COM_MODO) assert.equal(statSync(join(m.dados, 'sub')).mode & 0o777, 0o700);
     assert.equal(readFileSync(join(m.dados, 'sub', 'a.txt'), 'utf8'), 'x');
   });
 });
@@ -106,7 +106,7 @@ describe('app-do-claude: cópia clonada (F560)', () => {
     copiarArquivo(src, dst);
     assert.equal(readFileSync(dst, 'utf8'), '{"a":1}');
     assert.equal(statSync(dst).mtimeMs, statSync(src).mtimeMs);
-    assert.equal(statSync(dst).mode & 0o777, 0o600);
+    if (COM_MODO) assert.equal(statSync(dst).mode & 0o777, 0o600);
     assert.equal(existsSync(`${dst}.troca-tmp`), false);
     // Clone de verdade divide blocos, mas não é hardlink: inode diferente e escrita que não vaza.
     assert.notEqual(statSync(dst).ino, statSync(src).ino);
@@ -172,7 +172,7 @@ describe('app-do-claude: controle real do app', () => {
       if (cmd === 'osascript') vivo = false;
       return { status: 0 };
     };
-    return { chamadas, executar, controle: controleReal({ executar, dormir: async () => {} }) };
+    return { chamadas, executar, controle: controleReal({ executar, dormir: async () => {}, plataforma: 'darwin' }) };
   };
 
   it('vê o app rodando mesmo quando a troca descende dele (pgrep -a) e o fecha antes de trocar', async () => {
@@ -192,7 +192,7 @@ describe('app-do-claude: controle real do app', () => {
       if (cmd === 'pkill') vivo = false;
       return { status: 0 };
     };
-    await controleReal({ executar, dormir: async () => {}, esperaFechar: 0 }).fechar();
+    await controleReal({ executar, dormir: async () => {}, esperaFechar: 0, plataforma: 'darwin' }).fechar();
     assert.ok(chamadas.includes('pkill -9 -a -x Claude'), chamadas.join(' | '));
   });
 });
