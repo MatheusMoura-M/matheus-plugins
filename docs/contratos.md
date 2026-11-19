@@ -76,7 +76,7 @@ O tema das duas páginas (Painel e contas): ligado, o céu e o vidro; desligado,
 }
 ```
 
-`estado`: `aberta` · `respondida` · `descartada`. `lida: false` marca resposta dada pela página que a sessão ainda não leu (`perguntas novidades`).
+`estado`: `aberta` · `respondida` · `descartada`. `lida: false` marca resposta dada pela página que a sessão ainda não leu (`perguntas novidades`). `sessao`: quem perguntou e recebe a resposta da página (o `--sessao`; sem ele, a sessão do item; sem as duas, `null`). A página só grava o pedido `responder` para `local_…`: com `null`, a resposta fica só no registro. A orquestradora sempre passa `--sessao` (o hook `pergunta-com-sessao` recusa sem ele).
 
 ### `itens/<projeto>/F<n>.json`
 
@@ -132,7 +132,7 @@ O navegador não alcança as ferramentas do app; o mod da `barra` alcança. A p�
 { "tipo": "abrir-sessao", "sessao": "local_…", "texto": null, "criadoEm": "ISO-8601" }
 ```
 
-`tipo`: `responder` (manda `texto` à sessão como mensagem) · `abrir-sessao` (foca a sessão da pergunta; a página não grava mais esse pedido desde a ICH-F34, porque o app só foca a própria sessão — a barra ainda o aceita). O mod toma o pedido renomeando-o para `pedidos/tomados/` (só um mod ganha; o rename e o apagar vão pelo `node`, iguais no macOS e no Windows), executa e apaga; falha vai a `pedidos/falhos/` com o motivo. Pedido de mais de 30 min é descartado.
+`tipo`: `responder` (manda `texto` à sessão como mensagem; o turno que ela abre o app conta como automático, e nele `start_session` com `user_asked` é recusado: só cartão `own_initiative`, que não aceita `cwd` de outra pasta) · `abrir-sessao` (foca a sessão da pergunta; a página não grava mais esse pedido desde a ICH-F34, porque o app só foca a própria sessão — a barra ainda o aceita). O mod toma o pedido renomeando-o para `pedidos/tomados/` (só um mod ganha; o rename e o apagar vão pelo `node`, iguais no macOS e no Windows), executa e apaga; falha vai a `pedidos/falhos/` com o motivo. Pedido de mais de 30 min é descartado.
 
 Pedido vencido ou inválido também vai a `falhos/` com o motivo (fica o rastro). O nome do arquivo segue `[A-Za-z0-9_-]+.json` e `sessao` segue `local_[A-Za-z0-9-]+`. **Limite do app:** `abrir-sessao` usa `open_session_in` com `target: "focus"`, que só mostra a própria sessão (`self`) ou uma que a sessão que tomou o pedido abriu, e só age com essa sessão na tela; fora disso o app diz que não mudou nada e o mod registra o texto no log.
 

@@ -5,7 +5,8 @@
 import { closeSync, fstatSync, openSync, readSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import * as estado from '../lib/estado.mjs';
-import { lerEntrada, rodar } from './comum.mjs';
+import { lerEntrada, papelDe, rodar } from './comum.mjs';
+import { comoGravarPergunta } from './pergunta-com-sessao.mjs';
 
 const CAUDA_DO_TRANSCRIPT = 512 * 1024;
 // Só no começo da linha (depois de marcador de lista, citação ou título): `**D34` ou `**IZA-Q9`.
@@ -109,7 +110,7 @@ export function cobrarRegistro(entrada) {
   return {
     decision: 'block',
     reason: `A sua mensagem traz decisão para o operador que não está na página: ${faltam.join(', ')}. `
-      + `Pergunta que só fica no chat não chega ao painel. Grave cada uma agora com \`perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item ${s}-Fn\` `
+      + `Pergunta que só fica no chat não chega ao painel. Grave cada uma agora com ${comoGravarPergunta(s, papelDe(entrada.session_id))} `
       + `e cite o id que ela imprimir (${s}-Qn) no lugar do número do chat. Se já estava gravada, só diga o id. `
       + 'Não repita a mensagem ao operador: uma linha com os ids basta.',
   };

@@ -5,6 +5,7 @@
 import { fileURLToPath } from 'node:url';
 import * as estado from '../lib/estado.mjs';
 import { lerEntrada, papelDe, responder, rodar } from './comum.mjs';
+import { comoGravarPergunta } from './pergunta-com-sessao.mjs';
 import { gravada, turnoAtual } from './pergunta-no-painel.mjs';
 
 const ID_CITADO = /\b([A-Z0-9]{3})-(Q\d+)\b/g;
@@ -13,11 +14,12 @@ const GRAVA_PERGUNTA = /\bperguntas\s+nova\b/;
 export function decidir(entrada) {
   const i = entrada.tool_input ?? {};
   if (typeof i.ask !== 'string' || !i.ask.trim()) return null;
-  if (i.blocked !== true && papelDe(entrada.session_id) !== 'orquestradora') return null;
+  const papel = papelDe(entrada.session_id);
+  if (i.blocked !== true && papel !== 'orquestradora') return null;
   const projeto = estado.nomeDoProjeto(entrada.cwd || process.cwd());
   const s = estado.sigla(projeto);
   const citados = [...i.ask.matchAll(ID_CITADO)].map((m) => ({ sigla: m[1], id: m[2] }));
-  const comoGravar = `\`perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item ${s}-Fn\``;
+  const comoGravar = comoGravarPergunta(s, papel);
   if (citados.length) {
     const faltam = citados.filter((c) => !gravada(c.sigla, c.id, projeto)).map((c) => `${c.sigla}-${c.id}`);
     return faltam.length

@@ -52,7 +52,7 @@ Este fluxo é para trabalho que se divide em várias entregas. Um ajuste de layo
 4. **Executa em ondas** (`orquestracao:executar-plano`). Cada onda sai de uma vez: até 4 executoras (`orquestracao:executor`, em Sonnet), uma por tarefa, na mesma pasta. Duas tarefas da mesma onda nunca dividem arquivo. A dona (em Opus) confere a onda inteira, roda os testes afetados e o typecheck e commita tarefa por tarefa.
 5. **Confere e revisa.** Nada é "pronto" sem a saída do comando (`orquestracao:verificar-antes-de-concluir`). O revisor (`orquestracao:revisor`, Opus, em contexto separado) só entra nos itens de risco: autenticação, permissão ou segredo; dinheiro; migração ou dado que não volta; diff com mais de ~400 linhas. O resto passa pela autorrevisão da skill `orquestracao:revisar`.
 6. **PR e merge.** A dona abre o PR para a `develop` (`orquestracao:entregar-branch`) e mergeia por squash quando o CI passa. Não há fila: cada dona cuida do próprio PR. Depois ela grava a entrega (resultado, o que mediu, o que não mediu, próximos passos) e se arquiva.
-7. **Perguntas vão ao Painel.** O que é seu (irreversível, destrutivo, produção, gasto, o que publica para fora) vira `perguntas nova`, com o caso, o que acontece se ninguém decidir e a recomendação. Decisão de baixo risco a sessão assume, marca *assumida, a confirmar* e segue. Dois hooks garantem que nenhuma pergunta fique só no chat.
+7. **Perguntas vão ao Painel.** O que é seu (irreversível, destrutivo, produção, gasto, o que publica para fora) vira `perguntas nova`, com o caso, o que acontece se ninguém decidir e a recomendação. Decisão de baixo risco a sessão assume, marca *assumida, a confirmar* e segue. Dois hooks garantem que nenhuma pergunta fique só no chat, e um terceiro, que a pergunta da orquestradora saia ligada à sessão dela (`--sessao local_…`): é por ela que a sua resposta no Painel chega até lá.
 8. **Release.** A orquestradora sugere a hora. Com o seu sim, `orquestracao:release` roda o gate completo e leva a `develop` à `main` por avanço rápido. O push na `main` dispara o deploy.
 
 ---
@@ -127,7 +127,7 @@ A orquestradora é para **dividir trabalho grande entre várias sessões**, não
 
 | Seção | O que mostra |
 |---|---|
-| **Perguntas** | As abertas de todos os projetos: o caso, o que acontece se ninguém decidir e a recomendação. Um botão só para responder: com o campo vazio ele **aceita a recomendação**, com texto **envia a resposta** (⌘/Ctrl+Enter também envia). A resposta chega à sessão que perguntou, pela barra. |
+| **Perguntas** | As abertas de todos os projetos: o caso, o que acontece se ninguém decidir e a recomendação. Um botão só para responder: com o campo vazio ele **aceita a recomendação**, com texto **envia a resposta** (⌘/Ctrl+Enter também envia). A resposta chega à sessão que perguntou, pela barra, e abre um turno nela. Pergunta gravada sem sessão fica só no registro (`perguntas novidades`). |
 | **Sessões** | Um grupo por projeto, com a etapa de cada item (planejamento → execução → revisão → PR → entregue), quem espera você e quem está rodando agora. Cada estado tem um selo de cor própria: esperando você em âmbar, trabalhando em azul, em revisão em ciano, no PR em lilás, parada em vermelho. Clicar no cartão o abre, como os Entregues: o que já está feito e o que falta, no resumo da dona, e quanto tempo o item ficou em cada etapa, com o total. |
 | **Entregues** | As entregas dos últimos 30 dias: resultado, o que foi medido, o que ficou sem medir, próximos passos e o PR. |
 
@@ -139,6 +139,7 @@ Entra no PATH das sessões com o plugin ligado: no bash (macOS, Linux, Git Bash)
 
 ```bash
 perguntas nova --titulo T --caso C --se-nao S --recomendacao R --item IZA-F7   # imprime IZA-Q12
+perguntas nova … --sessao local_…   # quem recebe a resposta do Painel; sem ele, a sessão do item
 perguntas responder IZA-Q12 "resposta dada no chat"
 perguntas listar | perguntas novidades | perguntas contar
 perguntas item nova "título" | item etapa F7 execucao --feito "…" --falta "…" | item andamento F7 --feito "…" --falta "…" | item ver F7 | item listar
@@ -182,7 +183,7 @@ perguntas sigla [SIG] | arquivar | pagina [--abrir | --subir] [--porta 4747]
 
 ### Hooks
 
-A maioria avisa ou pergunta antes. Só três seguram: a mensagem com segredo para outra sessão, a caixa que espera você sem a pergunta gravada e o fim de turno com bloco de decisão sem registro (devolvido uma vez).
+A maioria avisa ou pergunta antes. Só quatro seguram: a mensagem com segredo para outra sessão, a pergunta da orquestradora sem `--sessao`, a caixa que espera você sem a pergunta gravada e o fim de turno com bloco de decisão sem registro (devolvido uma vez).
 
 | Quando | Hook | O que faz |
 |---|---|---|
@@ -191,6 +192,7 @@ A maioria avisa ou pergunta antes. Só três seguram: a mensagem com segredo par
 | Antes de editar | `config-protegida` | Mexer em configuração de lint, formatador ou tipos pergunta antes (o certo é consertar o código). |
 | Antes de editar ou rodar Bash | `segredo-em-arquivo` | Pergunta antes de gravar segredo de verdade em arquivo e antes de `git add .env`. Nomeia o padrão, nunca o valor. |
 | Antes de rodar Bash | `sem-no-verify` | `--no-verify` e afins perguntam antes. |
+| Antes de rodar Bash ou PowerShell | `pergunta-com-sessao` | Recusa a `perguntas nova` da orquestradora sem `--sessao local_…`: sem ele, a sua resposta no Painel não chega a ela. |
 | Antes de mandar mensagem a outra sessão | `segredo-sai` | Recusa a mensagem que leva segredo a outra sessão. |
 | Antes da caixa de próximo passo | `pergunta-na-caixa` | A caixa que espera você só passa com a pergunta gravada no Painel. |
 | Depois de editar | `aviso-console-log`, `formatar-editado` | Avisa `console.log` em código de produto; formata só o arquivo editado, se o projeto declara Biome ou Prettier (`MATHEUS_PLUGINS_FORMATAR=0` desliga). |
