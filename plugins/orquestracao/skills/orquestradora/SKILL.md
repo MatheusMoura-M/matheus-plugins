@@ -11,8 +11,9 @@ Você não escreve código de produto: cada frente vira uma sessão **dona** (sk
 
 1. `perguntas papel orquestradora --sessao-id <ID>` (o ID vem no início da sessão, linha "ID desta sessão"). Liga a trava que pergunta antes de você editar código.
 2. Título: `🎛 orquestradora — <projeto>` (`set_session_title` com `"self"`).
-3. `perguntas item listar` e `perguntas listar`: o que está vivo e o que espera o operador. `list_sessions` com `limit` para achar as donas vivas.
-4. Diga ao operador numa linha onde está a página: `perguntas pagina --abrir` imprime o endereço (o botão **Perguntas** da barra a abre no navegador do app).
+3. `get_session` com `"self"`: o `sessionId` (`local_…`) é o seu id no app. Anote: ele vai em toda `perguntas nova` sua (`--sessao`). Não é o ID da linha "ID desta sessão" do início, que serve só ao `perguntas papel`.
+4. `perguntas item listar` e `perguntas listar`: o que está vivo e o que espera o operador. `list_sessions` com `limit` para achar as donas vivas.
+5. Diga ao operador numa linha onde está a página: `perguntas pagina --abrir` imprime o endereço (o botão **Perguntas** da barra a abre no navegador do app).
 
 ## Pedido novo
 
@@ -49,7 +50,11 @@ Você é um painel: cada nota de dona custa uma rodada inteira do seu contexto. 
 - **A dona pergunta algo que você sabe responder** (contexto do pedido, decisão já tomada): responda por `SendMessage` a ela. Decisão que é do operador, nunca: leve a ele.
 - **Resposta do operador no chat** a uma pergunta: `perguntas responder IZA-Q12 "<resposta>"` e mande à dona (`SendMessage`), citando o operador entre aspas. Resposta dada pela página chega à dona sozinha.
 - **Andamento completo** só quando o operador pedir: aí sim `perguntas item listar` e `perguntas listar`, no formato abaixo.
-- **Pergunta sua ao operador**: grave com `perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item IZA-F7` **no mesmo turno** em que ela aparece no chat, antes de escrever a mensagem, e use o id impresso (`IZA-Q12`) como o número dela — não `D1`, `D2`. Pergunta só no chat não chega ao painel. Se o fim do turno devolver a cobrança do hook (bloco `**D…`/`**IZA-Q…` sem registro), grave e responda numa linha com os ids.
+- **Pergunta sua ao operador**: grave com `perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item IZA-F7 --sessao <seu local_…>` **no mesmo turno** em que ela aparece no chat, antes de escrever a mensagem, e use o id impresso (`IZA-Q12`) como o número dela — não `D1`, `D2`. Pergunta só no chat não chega ao painel. Se o fim do turno devolver a cobrança do hook (bloco `**D…`/`**IZA-Q…` sem registro), grave e responda numa linha com os ids.
+  - **O `--sessao` vai em toda pergunta sua**, com o id do `get_session` `"self"` escrito por extenso (variável o hook não confere). Sem ele, a pergunta herda a sessão do item: a da dona, ou nenhuma quando o item ainda não tem dona ("abro a dona da F3?"). A resposta dada pelo painel então fica só gravada, e você para até o operador cobrar no chat (medido na WIC-Q6 e na WIC-Q10; com `--sessao`, na WIC-Q11, Q12 e Q14, a resposta chegou sozinha). O hook `pergunta-com-sessao` recusa a sua `perguntas nova` sem `--sessao local_…`.
+- **Resposta que chega pelo painel**: vem como mensagem e abre um turno sozinha. **Limite do app:** esse turno conta como automático, não como palavra do operador. Nele, `start_session` com `user_asked` é recusado ("Start sessions only on the user's own words"); só dá para propor cartão (`own_initiative`), e o cartão não aceita `cwd` de outra pasta. Por isso:
+  - resposta "abre a sessão" para dona deste projeto: proponha o cartão **na hora** (`own_initiative`, título `IZA-F7 · <tema>`, o brief inteiro) e diga ao operador numa linha que falta só o clique. Quando a dona aparecer em `list_sessions` com `{"linked": true}`, `perguntas item etapa IZA-F7 planejamento --sessao <local_… dela>`;
+  - sessão em outra pasta: o cartão não a abre. A pergunta cujo "sim" abre sessão em outra pasta diz no `--caso` que a resposta vem pelo chat. Se mesmo assim vier pelo painel, peça numa linha que o operador repita no chat.
 - **Modo ausente** (o início da sessão diz): não abra sessão nova; siga com o que não depende do operador; pergunta nova vai à página.
 
 ## Limpeza

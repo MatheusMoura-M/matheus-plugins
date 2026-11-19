@@ -16,6 +16,7 @@ import { lembrarLimpeza } from '../hooks/orquestradora-limpa-na-mensagem.mjs';
 import { tokensDoContexto } from '../hooks/comum.mjs';
 import { blocosDeDecisao, cobrarRegistro } from '../hooks/pergunta-no-painel.mjs';
 import { decidir as perguntaNaCaixa } from '../hooks/pergunta-na-caixa.mjs';
+import { decidir as perguntaComSessao } from '../hooks/pergunta-com-sessao.mjs';
 import { decidir as semNoVerify } from '../hooks/sem-no-verify.mjs';
 import { decidir as segredoEmArquivo } from '../hooks/segredo-em-arquivo.mjs';
 import { decidir as avisoConsoleLog } from '../hooks/aviso-console-log.mjs';
@@ -942,6 +943,42 @@ test('a caixa do app (wrap_up com ask) que espera o operador só passa com a per
   assert.equal(perguntaNaCaixa(caixa(undefined, { blocked: true })), null, 'sem ask não há pergunta');
   await rodar('papel', 'orquestradora', '--sessao-id', SESSAO_DO_APP);
   assert.match(perguntaNaCaixa(caixa('Abro o PR?')), /perguntas nova/, 'na orquestradora, toda caixa com pergunta vai à página');
+});
+
+test('a pergunta da orquestradora só vai à página com --sessao local_…: sem ela, a resposta do painel não chega (MAT-F7)', async () => {
+  const ORQUESTRADORA = 'sessao-orquestradora-1';
+  const cmd = (command, tool_name = 'Bash', session_id = ORQUESTRADORA) => perguntaComSessao({ session_id, tool_name, tool_input: { command } });
+  const nova = 'perguntas nova --titulo "Abrir a dona da F3?" --caso c --se-nao s --recomendacao r --item IZA-F3';
+  assert.equal(cmd(nova), null, 'fora da orquestradora passa: a dona já tem a sessão no item');
+  await rodar('papel', 'orquestradora', '--sessao-id', ORQUESTRADORA);
+  assert.match(cmd(nova), /--sessao local_/);
+  assert.match(cmd(nova), /get_session.*"self"/, 'diz de onde vem o id');
+  assert.equal(cmd(`${nova} --sessao ${SESSAO_DO_APP}`), null);
+  assert.equal(cmd(`${nova} --sessao=${SESSAO_DO_APP}`), null);
+  assert.equal(cmd(`${nova} --sessao '${SESSAO_DO_APP}'`, 'PowerShell'), null);
+  assert.match(cmd(`${nova} --sessao ${ORQUESTRADORA}`), /perguntas papel/, 'o ID do início da sessão é o do papel, não o do app');
+  assert.match(cmd(`${nova} --sessao $SESSAO`), /--sessao \$SESSAO/, 'variável não dá para conferir: o id vai por extenso');
+  assert.ok(cmd(`${nova} --sessao ${SESSAO_DO_APP} && ${nova}`), 'cada pergunta do comando confere a sua');
+  assert.ok(cmd(`& perguntas.cmd nova --titulo 'T' --caso c --se-nao s --recomendacao r; perguntas item etapa IZA-F3 planejamento --sessao ${SESSAO_DO_APP}`, 'PowerShell'), 'o --sessao de outro comando não vale');
+  assert.ok(cmd('/c/Users/x/.claude/plugins/cache/matheus-plugins/orquestracao/abc/bin/perguntas nova --titulo T --caso c --se-nao s --recomendacao r'), 'chamado pelo caminho');
+  assert.ok(cmd('C:\\Users\\x\\bin\\perguntas.cmd nova --titulo T --caso c --se-nao s --recomendacao r', 'PowerShell'), 'caminho do Windows no PowerShell');
+  assert.ok(cmd('Q=$(perguntas nova --titulo T --caso c --se-nao s --recomendacao r)'), 'dentro de $( )');
+  assert.equal(cmd(`Q=$(perguntas nova --titulo T --caso c --se-nao s --recomendacao r --sessao ${SESSAO_DO_APP})`), null);
+  assert.ok(cmd('$q = perguntas nova --titulo T --caso c --se-nao s --recomendacao r', 'PowerShell'), 'atribuição do PowerShell');
+  assert.equal(cmd(`perguntas nova --titulo T --caso c \\\n  --se-nao s --recomendacao r --sessao ${SESSAO_DO_APP}`), null, 'continuação de linha do bash');
+  assert.equal(cmd(`perguntas nova --titulo T --caso c \`\r\n  --se-nao s --recomendacao r --sessao ${SESSAO_DO_APP}`, 'PowerShell'), null, 'continuação de linha do PowerShell');
+  assert.equal(cmd('grep -n "perguntas nova" skills/orquestradora/SKILL.md'), null, 'texto citado não é pergunta');
+  assert.equal(cmd('echo "perguntas nova"'), null);
+  assert.equal(cmd('perguntas item nova "Login"'), null, 'item novo não é pergunta');
+  assert.equal(perguntaComSessao({ session_id: ORQUESTRADORA, tool_name: 'Bash', tool_input: {} }), null);
+
+  // As cobranças ensinam à orquestradora o comando que este hook aceita.
+  const cwd = projetoIzanagi();
+  const transcript_path = transcriptDoTurno('**D1 · Abro a dona da F3?** Recomendo abrir.');
+  assert.match(cobrarRegistro({ cwd, transcript_path, session_id: ORQUESTRADORA }).reason, /--item IZA-Fn --sessao <seu local_…>/);
+  assert.doesNotMatch(cobrarRegistro({ cwd, transcript_path, session_id: 'sessao-dona-1' }).reason, /--sessao/);
+  const caixa = { cwd, session_id: ORQUESTRADORA, transcript_path, tool_input: { recap: 'r', ask: 'Abro a dona da F3?' } };
+  assert.match(perguntaNaCaixa(caixa), /--item IZA-Fn --sessao <seu local_…>/);
 });
 
 test('nenhum comando das skills cola `:` logo depois de `$VAR` (no zsh, `$SHA:r…` vira o modificador :r e corta o valor)', () => {

@@ -48,6 +48,16 @@
         ]
       },
       {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pergunta-com-sessao.mjs\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "SendMessage|mcp__ccd_session_mgmt__send_message|mcp__ccd_session__start_session|mcp__ccd_session__hand_off_to_session",
         "hooks": [
           {
