@@ -228,12 +228,18 @@ const diasEntre = (de, ate) => Math.round((Date.UTC(...ate.split('-').map((n, i)
 const haDias = (n) => (n <= 0 ? 'hoje' : n === 1 ? 'há 1 dia' : `há ${n} dias`);
 const ROTULO_DA_TENDENCIA = { novo: 'novo', subindo: 'subindo', caindo: 'caindo', estavel: 'estável' };
 
-function cartaoDeErroEitri(l, agora) {
-  const id = `eitri-${[l.organizacao, l.aplicativo, l.eitriApp ?? ''].join('-').toLowerCase().replace(/[^w-]+/g, '-')}`;
+/** `26/11` num dia só; `21/11 a 27/11` numa janela. */
+const janela = (r) => (r.de === r.ate ? diaCurto(r.ate) : `${diaCurto(r.de)} a ${diaCurto(r.ate)}`);
+
+/** O id do cartão (o Painel lembra quais estavam abertos): letras, dígitos e hífen. */
+export const idDoCartaoEitri = (l) => `eitri-${[l.organizacao, l.aplicativo, l.eitriApp ?? ''].join('-').toLowerCase().replace(/[^\w-]+/g, '-')}`;
+
+function cartaoDeErroEitri(l, agora, dias) {
   const desde = l.desde ? `${diaLongo(l.desde)} (${haDias(diasEntre(l.desde, diaSP(agora)))})` : '';
-  return `<li><details class="entrega eitri" id="${esc(id)}"><summary><div class="cartao-cab">${cabecaDoProjeto(l.organizacao)}<span class="cartao-titulo">${esc(l.aplicativo)}</span><span class="selo selo-parado">${esc(quantos(l.erros, 'erro', 'erros'))}</span></div>
+  const total = dias > 1 ? `${quantos(l.erros, 'erro', 'erros')} em ${dias} dias` : quantos(l.erros, 'erro', 'erros');
+  return `<li><details class="entrega eitri" id="${esc(idDoCartaoEitri(l))}"><summary><div class="cartao-cab">${cabecaDoProjeto(l.organizacao)}<span class="cartao-titulo">${esc(l.aplicativo)}</span><span class="selo selo-parado">${esc(total)}</span></div>
 <p class="resumo-eitri">${esc(l.resumo)}</p></summary>
-${campos([['Eitri-app', esc(l.eitriApp)], ['Desde', esc(desde)], ['Último', esc(l.ultimoEm ? horaSP(l.ultimoEm) : '')], ['Versão', esc(l.versao)], ['Crashes', l.crashes === null ? '' : esc(String(l.crashes))], ['Tendência', esc(ROTULO_DA_TENDENCIA[l.tendencia] ?? '')]])}</details></li>`;
+${campos([['Hoje', l.hoje === null ? '' : esc(String(l.hoje))], ['Eitri-app', esc(l.eitriApp)], ['Desde', esc(desde)], ['Último', esc(l.ultimoEm ? horaSP(l.ultimoEm) : '')], ['Versão', esc(l.versao)], ['Crashes', l.crashes === null ? '' : esc(String(l.crashes))], ['Tendência', esc(ROTULO_DA_TENDENCIA[l.tendencia] ?? '')]])}</details></li>`;
 }
 
 /** A seção só aparece com relatório gravado (máquina sem a tarefa das 8h não vê nada). */
@@ -243,11 +249,12 @@ function secaoEitri(agora) {
   if (!r) return secao('h-eitri', 'Erros Eitri', 'relatório ilegível', [], 'O eitri-erros.json não se lê: rode a tarefa das 8h de novo.');
   const ha = haQuanto(Date.parse(r.geradoEm), agora);
   const lido = agora - Date.parse(r.geradoEm) > RELATORIO_VELHO_MS
-    ? `relatório velho: dia ${diaCurto(r.dia)}, gerado ${ha}`
-    : `dia ${diaCurto(r.dia)} · gerado ${ha}`;
-  const vazio = `Nenhum erro em ${diaCurto(r.dia)}${r.verificados !== null ? ` nos ${r.verificados} apps verificados` : ''}.`;
+    ? `relatório velho: ${janela(r)}, gerado ${ha}`
+    : `${janela(r)} · gerado ${ha}`;
+  const vazio = `Nenhum erro ${r.de === r.ate ? 'em' : 'de'} ${janela(r)}${r.verificados !== null ? ` nos ${r.verificados} apps verificados` : ''}.`;
   const falhas = r.falhas.length ? `<p class="motivo">Não verificado: ${r.falhas.map(esc).join(' · ')}</p>` : '';
-  return secao('h-eitri', 'Erros Eitri', esc(lido), r.lojas.map((l) => cartaoDeErroEitri(l, agora)), esc(vazio), falhas);
+  const dias = diasEntre(r.de, r.ate) + 1;
+  return secao('h-eitri', 'Erros Eitri', esc(lido), r.lojas.map((l) => cartaoDeErroEitri(l, agora, dias)), esc(vazio), falhas);
 }
 
 /** O modo ausente, lido do arquivo da barra a cada carga da página (e o recarregamento de 30 s o mantém em dia). */
