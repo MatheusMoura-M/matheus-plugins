@@ -129,6 +129,7 @@ A orquestradora é para **dividir trabalho grande entre várias sessões**, não
 |---|---|
 | **Perguntas** | As abertas de todos os projetos: o caso, o que acontece se ninguém decidir e a recomendação. Um botão só para responder: com o campo vazio ele **aceita a recomendação**, com texto **envia a resposta** (⌘/Ctrl+Enter também envia). A resposta chega à sessão que perguntou, pela barra, e abre um turno nela. Pergunta gravada sem sessão fica só no registro (`perguntas novidades`). |
 | **Sessões** | Um grupo por projeto, com a etapa de cada item (planejamento → execução → revisão → PR → entregue), quem espera você e quem está rodando agora. Cada estado tem um selo de cor própria: esperando você em âmbar, trabalhando em azul, em revisão em ciano, no PR em índigo, parada em vermelho. Clicar no cartão o abre, como os Entregues: o que já está feito e o que falta, no resumo da dona, e quanto tempo o item ficou em cada etapa, com o total. |
+| **Erros Eitri** | Só aparece com o `eitri-erros.json` gravado. As lojas com erro no dia anterior, da que tem mais erros para a que tem menos: organização, aplicativo, quantos erros e o erro resumido; ao abrir, o Eitri-app, desde quando o erro acontece, o último, a versão, os crashes e se está subindo ou caindo. Diz quando ninguém teve erro, quando uma organização não pôde ser lida e quando o relatório ficou velho (a tarefa das 8h não rodou). Quem lê a Eitri é a tarefa agendada "Erros Eitri" do app, pelo MCP da Eitri, porque o Painel não tem acesso a ele. |
 | **Entregues** | As entregas dos últimos 30 dias: resultado, o que foi medido, o que ficou sem medir, próximos passos e o PR. |
 
 O aviso de modo ausente fica no topo. O botão do canto esquerdo abre a gaveta de temas: liga e desliga o tema do Claude (o céu atrás da conversa), o tema do painel (desligado, as duas páginas voltam ao layout chapado do kit antigo) ou os dois. Itens entregues há mais de 30 dias vão para `arquivo/` e nada é apagado.
@@ -146,6 +147,7 @@ perguntas item nova "título" | item etapa F7 execucao --feito "…" --falta "�
 perguntas item entregar F7 --desfecho entregue --resultado "…" --medido "…" --nao-medido "…" --proximo "…" --pr 12
 perguntas papel orquestradora --sessao-id ID | passar-papel --sessao-id ID
 perguntas sigla [SIG] | arquivar | pagina [--abrir | --subir] [--porta 4747]
+perguntas eitri gravar relatorio.json   # a tarefa das 8h: valida e grava o eitri-erros.json do Painel
 ```
 
 ### Skills

@@ -1,0 +1,99 @@
+// O resumo diário de erros da Eitri: a tarefa agendada grava `eitri-erros.json` pelo `perguntas eitri gravar`, e o Painel mostra.
+import { test, beforeEach } from 'node:test';
+import assert from 'node:assert/strict';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { ARQUIVO_EITRI, gravarRelatorioEitri, lerRelatorioEitri, validarRelatorio } from '../lib/eitri.mjs';
+import { main } from '../lib/cli.mjs';
+import { html } from '../lib/pagina.mjs';
+
+const AGORA = Date.parse('2026-11-27T09:00:00-03:00');
+const raiz = () => process.env.MATHEUS_PLUGINS_HOME;
+let saida;
+const rodar = (...args) => { saida = []; return main(args, (s) => saida.push(s)); };
+
+beforeEach(() => { process.env.MATHEUS_PLUGINS_HOME = mkdtempSync(join(tmpdir(), 'kit-eitri-')); });
+
+const loja = (extra = {}) => ({
+  organizacao: 'Wicomm', aplicativo: 'eitri-shopping-shoulder', eitriApp: 'eitri-shopping-wake-shoulder-home',
+  erros: 4, crashes: 0, resumo: 'React #310: hook chamado dentro de condição', desde: '2026-11-23',
+  ultimoEm: '2026-11-26T23:56:16Z', versao: '0.5.71', tendencia: 'subindo', ...extra,
+});
+const relatorio = (extra = {}) => ({ geradoEm: '2026-11-27T08:05:00-03:00', dia: '2026-11-26', verificados: 31, lojas: [loja()], falhas: [], ...extra });
+
+test('validar aceita o relatório, ordena as lojas pelo número de erros e recusa campo errado dizendo qual', () => {
+  const { relatorio: r, problemas } = validarRelatorio(relatorio({ lojas: [loja({ aplicativo: 'a', erros: 1 }), loja({ aplicativo: 'b', erros: 9 })] }));
+  assert.deepEqual(problemas, []);
+  assert.deepEqual(r.lojas.map((l) => l.aplicativo), ['b', 'a']);
+  const ruim = validarRelatorio(relatorio({ lojas: [loja({ organizacao: '' }), loja({ erros: -1 }), loja({ desde: '23/11' }), loja({ tendencia: 'lado' })] }));
+  assert.equal(ruim.relatorio.lojas.length, 0);
+  assert.equal(ruim.problemas.length, 4);
+  assert.match(ruim.problemas.join('\n'), /organizacao/);
+  assert.match(ruim.problemas.join('\n'), /erros/);
+  assert.match(ruim.problemas.join('\n'), /desde/);
+  assert.match(ruim.problemas.join('\n'), /tendencia/);
+  assert.match(validarRelatorio({ lojas: [] }).problemas.join('\n'), /geradoEm/);
+});
+
+test('os campos opcionais podem faltar e saem como null', () => {
+  const { relatorio: r, problemas } = validarRelatorio(relatorio({ lojas: [{ organizacao: 'Mobfiq', aplicativo: 'eitri-shopping-peahi', erros: 2, resumo: 'falha' }] }));
+  assert.deepEqual(problemas, []);
+  assert.deepEqual(r.lojas[0], { organizacao: 'Mobfiq', aplicativo: 'eitri-shopping-peahi', eitriApp: null, erros: 2, crashes: null, resumo: 'falha', desde: null, ultimoEm: null, versao: null, tendencia: null });
+});
+
+test('gravar recusa relatório com problema e não deixa arquivo; válido, grava sem temporário', () => {
+  assert.throws(() => gravarRelatorioEitri(raiz(), relatorio({ lojas: [loja({ erros: 'muitos' })] })), /erros/);
+  assert.equal(existsSync(join(raiz(), ARQUIVO_EITRI)), false);
+  gravarRelatorioEitri(raiz(), relatorio());
+  assert.deepEqual(readdirSync(raiz()), [ARQUIVO_EITRI]);
+  assert.equal(JSON.parse(readFileSync(join(raiz(), ARQUIVO_EITRI), 'utf8')).lojas[0].organizacao, 'Wicomm');
+});
+
+test('ler: sem arquivo, ilegível, e loja ruim descartada sem derrubar o resto', () => {
+  assert.deepEqual(lerRelatorioEitri(raiz()), { relatorio: null, erro: 'sem-arquivo' });
+  writeFileSync(join(raiz(), ARQUIVO_EITRI), 'não é json');
+  assert.deepEqual(lerRelatorioEitri(raiz()), { relatorio: null, erro: 'ilegivel' });
+  writeFileSync(join(raiz(), ARQUIVO_EITRI), JSON.stringify(relatorio({ lojas: [loja(), { organizacao: 'x' }] })));
+  const lido = lerRelatorioEitri(raiz());
+  assert.equal(lido.erro, null);
+  assert.equal(lido.relatorio.lojas.length, 1);
+});
+
+test('perguntas eitri gravar lê o arquivo, grava e diz quantas lojas têm erro', async () => {
+  const fonte = join(raiz(), 'entrada.json');
+  writeFileSync(fonte, JSON.stringify(relatorio()));
+  assert.equal(await rodar('eitri', 'gravar', fonte), 0);
+  assert.match(saida.join('\n'), /1 loja com erro/);
+  assert.ok(existsSync(join(raiz(), ARQUIVO_EITRI)));
+  writeFileSync(fonte, JSON.stringify(relatorio({ lojas: [loja({ erros: -2 })] })));
+  await assert.rejects(rodar('eitri', 'gravar', fonte), /erros/);
+});
+
+test('o Painel só mostra a seção de erros quando há relatório', () => {
+  assert.doesNotMatch(html(AGORA), /h-eitri/);
+});
+
+test('o Painel mostra loja, erro resumido (escapado), desde quando e o dia do relatório', () => {
+  gravarRelatorioEitri(raiz(), relatorio({ lojas: [loja({ resumo: '<b>quebra</b> no carrinho' })] }));
+  const h = html(AGORA);
+  assert.match(h, /id="h-eitri">Erros Eitri</);
+  assert.match(h, /dia 26\/11/);
+  assert.match(h, /Wicomm/);
+  assert.match(h, /eitri-shopping-shoulder/);
+  assert.match(h, /&lt;b&gt;quebra&lt;\/b&gt; no carrinho/);
+  assert.ok(!h.includes('<b>quebra</b>'));
+  assert.match(h, /4 erros/);
+  assert.match(h, /23\/11\/2026 \(há 4 dias\)/);
+  assert.match(h, /subindo/);
+});
+
+test('o Painel diz quando ninguém teve erro, quando a org falhou e quando o relatório ficou velho', () => {
+  gravarRelatorioEitri(raiz(), relatorio({ lojas: [], falhas: ['Rosset: conexão recusada'] }));
+  let h = html(AGORA);
+  assert.match(h, /Nenhum erro em 26\/11 nos 31 apps verificados/);
+  assert.match(h, /Não verificado: Rosset: conexão recusada/);
+  gravarRelatorioEitri(raiz(), relatorio({ geradoEm: '2026-11-24T08:05:00-03:00', dia: '2026-11-23', lojas: [] }));
+  h = html(AGORA);
+  assert.match(h, /relatório velho/);
+});

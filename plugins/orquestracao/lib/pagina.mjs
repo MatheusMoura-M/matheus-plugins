@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import * as estado from './estado.mjs';
 import { ROTULO_DO_ESTADO, duracao, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
 import { BOTAO_DE_TEMA, BOTAO_DE_TEMAS, GAVETA_DE_TEMAS } from './publico/tema.js';
+import { RELATORIO_VELHO_MS, lerRelatorioEitri } from './eitri.mjs';
 
 export const PORTA_PADRAO = 4747;
 const HOST = '127.0.0.1';
@@ -216,6 +217,39 @@ function selosDoTopo(perguntas, andamento, entregues) {
   ].join('')}</ul>`;
 }
 
+// ---- erros da Eitri: o resumo que a tarefa das 8h grava (eitri-erros.json) ----
+
+/** O dia de hoje em São Paulo, `AAAA-MM-DD`. */
+const diaSP = (ms) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(ms));
+const diaCurto = (dia) => `${dia.slice(8, 10)}/${dia.slice(5, 7)}`;
+const diaLongo = (dia) => `${diaCurto(dia)}/${dia.slice(0, 4)}`;
+const diasEntre = (de, ate) => Math.round((Date.UTC(...ate.split('-').map((n, i) => n - (i === 1)))
+  - Date.UTC(...de.split('-').map((n, i) => n - (i === 1)))) / DIA_MS);
+const haDias = (n) => (n <= 0 ? 'hoje' : n === 1 ? 'há 1 dia' : `há ${n} dias`);
+const ROTULO_DA_TENDENCIA = { novo: 'novo', subindo: 'subindo', caindo: 'caindo', estavel: 'estável' };
+
+function cartaoDeErroEitri(l, agora) {
+  const id = `eitri-${[l.organizacao, l.aplicativo, l.eitriApp ?? ''].join('-').toLowerCase().replace(/[^w-]+/g, '-')}`;
+  const desde = l.desde ? `${diaLongo(l.desde)} (${haDias(diasEntre(l.desde, diaSP(agora)))})` : '';
+  return `<li><details class="entrega eitri" id="${esc(id)}"><summary><div class="cartao-cab">${cabecaDoProjeto(l.organizacao)}<span class="cartao-titulo">${esc(l.aplicativo)}</span><span class="selo selo-parado">${esc(quantos(l.erros, 'erro', 'erros'))}</span></div>
+<p class="resumo-eitri">${esc(l.resumo)}</p></summary>
+${campos([['Eitri-app', esc(l.eitriApp)], ['Desde', esc(desde)], ['Último', esc(l.ultimoEm ? horaSP(l.ultimoEm) : '')], ['Versão', esc(l.versao)], ['Crashes', l.crashes === null ? '' : esc(String(l.crashes))], ['Tendência', esc(ROTULO_DA_TENDENCIA[l.tendencia] ?? '')]])}</details></li>`;
+}
+
+/** A seção só aparece com relatório gravado (máquina sem a tarefa das 8h não vê nada). */
+function secaoEitri(agora) {
+  const { relatorio: r, erro } = lerRelatorioEitri(estado.raiz());
+  if (erro === 'sem-arquivo') return '';
+  if (!r) return secao('h-eitri', 'Erros Eitri', 'relatório ilegível', [], 'O eitri-erros.json não se lê: rode a tarefa das 8h de novo.');
+  const ha = haQuanto(Date.parse(r.geradoEm), agora);
+  const lido = agora - Date.parse(r.geradoEm) > RELATORIO_VELHO_MS
+    ? `relatório velho: dia ${diaCurto(r.dia)}, gerado ${ha}`
+    : `dia ${diaCurto(r.dia)} · gerado ${ha}`;
+  const vazio = `Nenhum erro em ${diaCurto(r.dia)}${r.verificados !== null ? ` nos ${r.verificados} apps verificados` : ''}.`;
+  const falhas = r.falhas.length ? `<p class="motivo">Não verificado: ${r.falhas.map(esc).join(' · ')}</p>` : '';
+  return secao('h-eitri', 'Erros Eitri', esc(lido), r.lojas.map((l) => cartaoDeErroEitri(l, agora)), esc(vazio), falhas);
+}
+
 /** O modo ausente, lido do arquivo da barra a cada carga da página (e o recarregamento de 30 s o mantém em dia). */
 function avisoDeAusente(ausente) {
   const desde = ausente?.desde ? horaSP(ausente.desde) : '';
@@ -229,7 +263,7 @@ export function html(agora = Date.now()) {
   const ausente = estado.lerAusente();
   const esquerda = secao('h-perguntas', 'Perguntas', perguntas.length || '', perguntas.map(({ projeto, p }) => cartaoDePergunta(projeto, p)), 'Nada esperando por você.')
     + (sessoes.total ? secao('h-sessoes', 'Sessões', esc(frescor(sessoes, agora)), grupos(sessoes, agora), '') : '');
-  const direita = secao('h-entregas', 'Entregues', `últimos ${estado.DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.', verMais(maisEntregas));
+  const direita = secaoEitri(agora) + secao('h-entregas', 'Entregues', `últimos ${estado.DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.', verMais(maisEntregas));
   // O céu segue só o botão de tema (`tema.json`): claro é o dia; escuro, e o padrão, a noite (estilo.css e ceu.js leem o `data-ceu`).
   // O tema do painel desligado (`tema-do-painel.json`) tira o céu e o vidro: o layout do kit antigo, no claro ou no escuro.
   const ligadoOuNao = (v) => (v ? 'ligado' : 'desligado');
