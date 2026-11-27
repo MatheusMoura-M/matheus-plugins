@@ -32,17 +32,17 @@ function pertoDaFaixa(x, y, w, h) {
 
 function pintarFixo(ctx, w, h) {
   const fundo = ctx.createLinearGradient(0, 0, w, h);
-  fundo.addColorStop(0, '#030014');
-  fundo.addColorStop(0.55, '#06021c');
-  fundo.addColorStop(1, '#0c0428');
+  fundo.addColorStop(0, '#020a1c');
+  fundo.addColorStop(0.55, '#03102a');
+  fundo.addColorStop(1, '#06183a');
   ctx.fillStyle = fundo;
   ctx.fillRect(0, 0, w, h);
 
-  // Nebulosas: manchas largas e bem apagadas, índigo de um lado e violeta do outro (a paleta da página parte de #030014).
+  // Nebulosas: manchas largas e bem apagadas, cobalto de um lado e azul-elétrico do outro (a paleta da página parte de #020a1c).
   const nebulosas = [
-    [w * 0.15, h * 0.85, Math.max(w, h) * 0.55, 'rgba(76, 60, 220, 0.12)'],
-    [w * 0.85, h * 0.12, Math.max(w, h) * 0.5, 'rgba(139, 70, 255, 0.14)'],
-    [w * 0.5, h * 0.5, Math.max(w, h) * 0.35, 'rgba(110, 70, 230, 0.07)'],
+    [w * 0.15, h * 0.85, Math.max(w, h) * 0.55, 'rgba(44, 95, 220, 0.12)'],
+    [w * 0.85, h * 0.12, Math.max(w, h) * 0.5, 'rgba(47, 123, 255, 0.14)'],
+    [w * 0.5, h * 0.5, Math.max(w, h) * 0.35, 'rgba(58, 110, 230, 0.07)'],
   ];
   for (const [x, y, r, cor] of nebulosas) {
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
@@ -62,13 +62,13 @@ function pintarFixo(ctx, w, h) {
     if (r() > 0.18 + perto * 0.82) continue;
     const a = 0.2 + r() * 0.6 * (0.4 + perto);
     const tam = r() < 0.04 ? 1.3 : 0.6;
-    ctx.fillStyle = r() < 0.5 ? `rgba(200, 210, 255, ${a})` : `rgba(220, 200, 255, ${a})`;
+    ctx.fillStyle = r() < 0.5 ? `rgba(200, 210, 255, ${a})` : `rgba(200, 220, 255, ${a})`;
     ctx.fillRect(x, y, tam, tam);
   }
   const brilho = ctx.createLinearGradient(0, h, w, 0);
-  brilho.addColorStop(0.3, 'rgba(120, 140, 255, 0)');
-  brilho.addColorStop(0.52, 'rgba(150, 125, 255, 0.08)');
-  brilho.addColorStop(0.75, 'rgba(120, 140, 255, 0)');
+  brilho.addColorStop(0.3, 'rgba(120, 168, 255, 0)');
+  brilho.addColorStop(0.52, 'rgba(125, 166, 255, 0.08)');
+  brilho.addColorStop(0.75, 'rgba(120, 168, 255, 0)');
   ctx.fillStyle = brilho;
   ctx.fillRect(0, 0, w, h);
 }
@@ -101,8 +101,8 @@ function montarCintilantes(w, h) {
 function estrela(ctx, x, y, raio, alfa) {
   const g = ctx.createRadialGradient(x, y, 0, x, y, raio * 4);
   g.addColorStop(0, `rgba(235, 238, 255, ${alfa})`);
-  g.addColorStop(0.25, `rgba(170, 160, 255, ${alfa * 0.35})`);
-  g.addColorStop(1, 'rgba(120, 110, 255, 0)');
+  g.addColorStop(0.25, `rgba(160, 192, 255, ${alfa * 0.35})`);
+  g.addColorStop(1, 'rgba(110, 156, 255, 0)');
   ctx.fillStyle = g;
   ctx.fillRect(x - raio * 4, y - raio * 4, raio * 8, raio * 8);
 }
@@ -128,7 +128,7 @@ function iniciarNoite(canvas) {
     const s = t / 1000;
     ctx.lineWidth = 0.6;
     for (const pontos of constelacoes) {
-      ctx.strokeStyle = 'rgba(160, 170, 255, 0.16)';
+      ctx.strokeStyle = 'rgba(160, 188, 255, 0.16)';
       ctx.beginPath();
       pontos.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
       ctx.stroke();

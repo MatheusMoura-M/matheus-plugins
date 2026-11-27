@@ -8,11 +8,11 @@ const L = 1600
 const A = 1000
 
 const NUVENS = 7
-/** As nuvens ficam na metade de cima, longe do sol, e bem leves por cima do azul. */
+/** As nuvens ficam na metade de cima, longe do sol, quase opacas por cima do azul. */
 const NUVEM_TOPO = 0.04
 const NUVEM_FAIXA = 0.42
-const NUVEM_ALFA_MIN = 0.35
-const NUVEM_ALFA_VARIA = 0.3
+const NUVEM_ALFA_MIN = 0.8
+const NUVEM_ALFA_VARIA = 0.15
 
 // Sol (os números de ceu-dia.js numa tela de 1600 × 1000).
 const ALTURA_SOL = 210
@@ -41,7 +41,8 @@ function defs(): string {
     '<defs>' +
     '<linearGradient id="ceu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#74b6ef"/><stop offset=".45" stop-color="#9ccdf4"/><stop offset=".78" stop-color="#d6ebfb"/><stop offset="1" stop-color="#ffeccb"/></linearGradient>' +
     '<radialGradient id="canto"><stop offset="0" stop-color="#2878d7" stop-opacity=".2"/><stop offset="1" stop-color="#2878d7" stop-opacity="0"/></radialGradient>' +
-    '<radialGradient id="bolha" fx=".5" fy=".4"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset=".6" stop-color="#fafcff" stop-opacity=".75"/><stop offset="1" stop-color="#ebf4ff" stop-opacity="0"/></radialGradient>' +
+    // Bolha de borda nítida: branca e cheia até quase a beira, só um sombreado azulado de leve no contorno.
+    '<radialGradient id="bolha" fx=".45" fy=".35"><stop offset="0" stop-color="#ffffff"/><stop offset=".75" stop-color="#fbfdff"/><stop offset="1" stop-color="#e6f0fb"/></radialGradient>' +
     '<radialGradient id="sombra-nuvem"><stop offset="0" stop-color="#b4cdeb" stop-opacity=".3"/><stop offset="1" stop-color="#b4cdeb" stop-opacity="0"/></radialGradient>' +
     `<radialGradient id="aura" gradientUnits="userSpaceOnUse" cx="${CX}" cy="${CY}" r="${RAIO + HALO * 2.6}" fr="${RAIO * 0.97}"><stop offset="0" stop-color="#ffc45c" stop-opacity=".42"/><stop offset=".2" stop-color="#ffd282" stop-opacity=".26"/><stop offset=".55" stop-color="#ffe4af" stop-opacity=".1"/><stop offset="1" stop-color="#ffecc8" stop-opacity="0"/></radialGradient>` +
     `<radialGradient id="halo" gradientUnits="userSpaceOnUse" cx="${CX}" cy="${CY}" r="${RAIO + HALO}" fr="${RAIO * 0.995}"><stop offset="0" stop-color="#fff4c8" stop-opacity=".85"/><stop offset=".15" stop-color="#ffd678" stop-opacity=".45"/><stop offset=".5" stop-color="#ffd28c" stop-opacity=".12"/><stop offset="1" stop-color="#ffd28c" stop-opacity="0"/></radialGradient>` +

@@ -32,7 +32,7 @@ const QUEDA = 1.1
 const PISCANTES = 160
 const CICLO_PISCA = 4
 const PISCA_A_CADA = 3
-const CORES_PISCA = ['#ffffff', '#d9d0ff', '#c8a8ff', '#9fb4ff']
+const CORES_PISCA = ['#ffffff', '#d0e2ff', '#a8c8ff', '#9fb4ff']
 
 /** Gerador determinístico (o mesmo de ceu.js): o céu é igual a cada carga. */
 export function sorteio(semente: number): () => number {
@@ -71,21 +71,21 @@ const ESTILO =
 function defs(): string {
   return (
     '<defs>' +
-    '<linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#01000b"/><stop offset=".55" stop-color="#020110"/><stop offset="1" stop-color="#050218"/></linearGradient>' +
-    '<radialGradient id="neb1"><stop offset="0" stop-color="#4c3cdc" stop-opacity=".045"/><stop offset="1" stop-color="#4c3cdc" stop-opacity="0"/></radialGradient>' +
-    '<radialGradient id="neb2"><stop offset="0" stop-color="#8b46ff" stop-opacity=".055"/><stop offset="1" stop-color="#8b46ff" stop-opacity="0"/></radialGradient>' +
-    '<radialGradient id="neb3"><stop offset="0" stop-color="#6e46e6" stop-opacity=".025"/><stop offset="1" stop-color="#6e46e6" stop-opacity="0"/></radialGradient>' +
-    `<linearGradient id="faixa" gradientUnits="userSpaceOnUse" x1="0" y1="${A}" x2="${L}" y2="0"><stop offset=".3" stop-color="#788cff" stop-opacity="0"/><stop offset=".52" stop-color="#967dff" stop-opacity=".09"/><stop offset=".75" stop-color="#788cff" stop-opacity="0"/></linearGradient>` +
-    '<radialGradient id="brilho"><stop offset="0" stop-color="#ebeeff"/><stop offset=".25" stop-color="#aaa0ff" stop-opacity=".35"/><stop offset="1" stop-color="#786eff" stop-opacity="0"/></radialGradient>' +
-    '<radialGradient id="nucleo"><stop offset="0" stop-color="#fff6ea" stop-opacity=".95"/><stop offset=".12" stop-color="#e6d2ff" stop-opacity=".55"/><stop offset=".45" stop-color="#8f7cff" stop-opacity=".14"/><stop offset="1" stop-color="#5b3fd6" stop-opacity="0"/></radialGradient>' +
+    '<linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#000510"/><stop offset=".55" stop-color="#010a1c"/><stop offset="1" stop-color="#03112b"/></linearGradient>' +
+    '<radialGradient id="neb1"><stop offset="0" stop-color="#2c5fdc" stop-opacity=".045"/><stop offset="1" stop-color="#2c5fdc" stop-opacity="0"/></radialGradient>' +
+    '<radialGradient id="neb2"><stop offset="0" stop-color="#2f7bff" stop-opacity=".055"/><stop offset="1" stop-color="#2f7bff" stop-opacity="0"/></radialGradient>' +
+    '<radialGradient id="neb3"><stop offset="0" stop-color="#3a6ee6" stop-opacity=".025"/><stop offset="1" stop-color="#3a6ee6" stop-opacity="0"/></radialGradient>' +
+    `<linearGradient id="faixa" gradientUnits="userSpaceOnUse" x1="0" y1="${A}" x2="${L}" y2="0"><stop offset=".3" stop-color="#78a8ff" stop-opacity="0"/><stop offset=".52" stop-color="#7da6ff" stop-opacity=".09"/><stop offset=".75" stop-color="#78a8ff" stop-opacity="0"/></linearGradient>` +
+    '<radialGradient id="brilho"><stop offset="0" stop-color="#ebeeff"/><stop offset=".25" stop-color="#a0c0ff" stop-opacity=".35"/><stop offset="1" stop-color="#6e9cff" stop-opacity="0"/></radialGradient>' +
+    '<radialGradient id="nucleo"><stop offset="0" stop-color="#fff6ea" stop-opacity=".95"/><stop offset=".12" stop-color="#d2e4ff" stop-opacity=".55"/><stop offset=".45" stop-color="#7ca4ff" stop-opacity=".14"/><stop offset="1" stop-color="#3f6fd6" stop-opacity="0"/></radialGradient>' +
     '<filter id="nevoa" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>' +
-    '<linearGradient id="rastro" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="160" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset=".25" stop-color="#d9d0ff" stop-opacity=".6"/><stop offset="1" stop-color="#9fb4ff" stop-opacity="0"/></linearGradient>' +
+    '<linearGradient id="rastro" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="160" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset=".25" stop-color="#d0e2ff" stop-opacity=".6"/><stop offset="1" stop-color="#9fb4ff" stop-opacity="0"/></linearGradient>' +
     // Planeta
-    `<radialGradient id="aura" gradientUnits="userSpaceOnUse" cx="${CX}" cy="${CY}" r="${RAIO + HALO * 2.2}" fr="${RAIO * 0.97}"><stop offset="0" stop-color="#a83cdc" stop-opacity=".24"/><stop offset=".18" stop-color="#8b46f0" stop-opacity=".16"/><stop offset=".5" stop-color="#5b3fd6" stop-opacity=".08"/><stop offset="1" stop-color="#5b3fd6" stop-opacity="0"/></radialGradient>` +
-    `<radialGradient id="halo" gradientUnits="userSpaceOnUse" cx="${CX}" cy="${CY}" r="${RAIO + HALO}" fr="${RAIO * 0.995}"><stop offset="0" stop-color="#e1b4ff" stop-opacity=".55"/><stop offset=".12" stop-color="#a855f7" stop-opacity=".32"/><stop offset=".45" stop-color="#8f7cff" stop-opacity=".1"/><stop offset="1" stop-color="#8f7cff" stop-opacity="0"/></radialGradient>` +
-    `<linearGradient id="corpo" gradientUnits="userSpaceOnUse" x1="0" y1="${TOPO}" x2="0" y2="${A}"><stop offset="0" stop-color="#120a26"/><stop offset=".35" stop-color="#090718"/><stop offset="1" stop-color="#05050f"/></linearGradient>` +
-    `<radialGradient id="atmosfera" gradientUnits="userSpaceOnUse" cx="${CX}" cy="${CY}" r="${RAIO}" fr="${RAIO - ATMOSFERA}"><stop offset="0" stop-color="#5b3fd6" stop-opacity="0"/><stop offset=".5" stop-color="#6e3cdc" stop-opacity=".1"/><stop offset=".82" stop-color="#9346e6" stop-opacity=".3"/><stop offset=".96" stop-color="#c882fa" stop-opacity=".62"/><stop offset="1" stop-color="#f5e1ff" stop-opacity=".9"/></radialGradient>` +
-    `<linearGradient id="sombra" gradientUnits="userSpaceOnUse" x1="0" y1="${TOPO}" x2="0" y2="${A}"><stop offset="0" stop-color="#05050f" stop-opacity="0"/><stop offset=".45" stop-color="#05050f" stop-opacity=".35"/><stop offset="1" stop-color="#05050f" stop-opacity=".85"/></linearGradient>` +
+    `<radialGradient id="aura" gradientUnits="userSpaceOnUse" cx="${CX}" cy="${CY}" r="${RAIO + HALO * 2.2}" fr="${RAIO * 0.97}"><stop offset="0" stop-color="#3c8cdc" stop-opacity=".24"/><stop offset=".18" stop-color="#4682f0" stop-opacity=".16"/><stop offset=".5" stop-color="#3f6fd6" stop-opacity=".08"/><stop offset="1" stop-color="#3f6fd6" stop-opacity="0"/></radialGradient>` +
+    `<radialGradient id="halo" gradientUnits="userSpaceOnUse" cx="${CX}" cy="${CY}" r="${RAIO + HALO}" fr="${RAIO * 0.995}"><stop offset="0" stop-color="#b4d8ff" stop-opacity=".55"/><stop offset=".12" stop-color="#559cf7" stop-opacity=".32"/><stop offset=".45" stop-color="#7ca4ff" stop-opacity=".1"/><stop offset="1" stop-color="#7ca4ff" stop-opacity="0"/></radialGradient>` +
+    `<linearGradient id="corpo" gradientUnits="userSpaceOnUse" x1="0" y1="${TOPO}" x2="0" y2="${A}"><stop offset="0" stop-color="#0a1630"/><stop offset=".35" stop-color="#070f22"/><stop offset="1" stop-color="#040812"/></linearGradient>` +
+    `<radialGradient id="atmosfera" gradientUnits="userSpaceOnUse" cx="${CX}" cy="${CY}" r="${RAIO}" fr="${RAIO - ATMOSFERA}"><stop offset="0" stop-color="#3f6fd6" stop-opacity="0"/><stop offset=".5" stop-color="#3c6edc" stop-opacity=".1"/><stop offset=".82" stop-color="#4686e6" stop-opacity=".3"/><stop offset=".96" stop-color="#82bafa" stop-opacity=".62"/><stop offset="1" stop-color="#e1efff" stop-opacity=".9"/></radialGradient>` +
+    `<linearGradient id="sombra" gradientUnits="userSpaceOnUse" x1="0" y1="${TOPO}" x2="0" y2="${A}"><stop offset="0" stop-color="#040812" stop-opacity="0"/><stop offset=".45" stop-color="#040812" stop-opacity=".35"/><stop offset="1" stop-color="#040812" stop-opacity=".85"/></linearGradient>` +
     '</defs>'
   )
 }
@@ -110,7 +110,7 @@ function ceuFixo(): string {
     const raio = r() < 0.05 ? 1.1 : 0.65
     grupos[r() < 0.5 ? 0 : 1].push(`<circle cx="${n1(x)}" cy="${n1(y)}" r="${raio}" opacity="${n2(a)}"/>`)
   }
-  s += `<g fill="#c8d2ff">${grupos[0].join('')}</g><g fill="#dcc8ff">${grupos[1].join('')}</g>`
+  s += `<g fill="#c8d2ff">${grupos[0].join('')}</g><g fill="#c8dcff">${grupos[1].join('')}</g>`
   s += `<rect width="${L}" height="${A}" fill="url(#faixa)"/>`
 
   return s + galaxia(1270, 230, 1, -28, 11) + galaxia(300, 360, 0.6, 34, 23)
@@ -128,13 +128,13 @@ function galaxia(x: number, y: number, escala: number, giro: number, semente: nu
       const raio = 6 + t * 58
       pts.push(`${n1(Math.cos(ang) * raio)} ${n1(Math.sin(ang) * raio)}`)
     }
-    bracos.push(`<path d="M${pts.join(' L')}" fill="none" stroke="#b9a8ff" stroke-width="${n1(9 - b)}" stroke-linecap="round" opacity=".22" filter="url(#nevoa)"/>`)
+    bracos.push(`<path d="M${pts.join(' L')}" fill="none" stroke="#a8c4ff" stroke-width="${n1(9 - b)}" stroke-linecap="round" opacity=".22" filter="url(#nevoa)"/>`)
   }
   const pontos = Array.from({ length: 26 }, () => {
     const ang = r() * Math.PI * 2
     const d = 8 + r() * 58
 
-    return `<circle cx="${n1(Math.cos(ang) * d)}" cy="${n1(Math.sin(ang) * d)}" r=".7" fill="#e8e0ff" opacity="${n2(0.3 + r() * 0.5)}"/>`
+    return `<circle cx="${n1(Math.cos(ang) * d)}" cy="${n1(Math.sin(ang) * d)}" r=".7" fill="#e0eaff" opacity="${n2(0.3 + r() * 0.5)}"/>`
   }).join('')
 
   return (
@@ -164,7 +164,7 @@ function estrelasVivas(): string {
       x += (r() - 0.5) * 420 * 0.32
       y += (r() - 0.35) * 46
     }
-    s += `<polyline points="${pts.map(p => `${n1(p[0])},${n1(p[1])}`).join(' ')}" fill="none" stroke="#a0aaff" stroke-opacity=".16" stroke-width=".6"/>`
+    s += `<polyline points="${pts.map(p => `${n1(p[0])},${n1(p[1])}`).join(' ')}" fill="none" stroke="#a0bcff" stroke-opacity=".16" stroke-width=".6"/>`
     s += pts.map(p => cintilante(p[0], p[1], 1.3, 0.8, p[2])).join('')
   }
   const q = sorteio(99)
@@ -243,7 +243,7 @@ function planeta(): string {
     const limbo = CY - Math.sqrt(RAIO * RAIO - dx * dx) - 4
     const ciclo = 1 / ritmo
 
-    return `<rect class="fa" x="${n1(x)}" y="${n1(limbo)}" width="${tam}" height="${tam}" fill="#ebdcff" style="--d:-${n1(subida)}px;animation-duration:${n1(ciclo)}s;animation-delay:-${n1(fase * ciclo)}s"/>`
+    return `<rect class="fa" x="${n1(x)}" y="${n1(limbo)}" width="${tam}" height="${tam}" fill="#dce9ff" style="--d:-${n1(subida)}px;animation-duration:${n1(ciclo)}s;animation-delay:-${n1(fase * ciclo)}s"/>`
   }).join('')
 
   return (
@@ -252,7 +252,7 @@ function planeta(): string {
     `<circle cx="${CX}" cy="${CY}" r="${RAIO}" fill="url(#corpo)"/>` +
     `<circle cx="${CX}" cy="${CY}" r="${RAIO}" fill="url(#atmosfera)"/>` +
     `<circle cx="${CX}" cy="${CY}" r="${RAIO}" fill="url(#sombra)"/>` +
-    `<circle cx="${CX}" cy="${CY}" r="${RAIO}" fill="none" stroke="#f0e1ff" stroke-opacity=".85" stroke-width="1.2"/>` +
+    `<circle cx="${CX}" cy="${CY}" r="${RAIO}" fill="none" stroke="#e1edff" stroke-opacity=".85" stroke-width="1.2"/>` +
     fagulhas
   )
 }

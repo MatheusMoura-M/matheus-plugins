@@ -5,20 +5,20 @@ import { makeColors } from './make-colors.js'
  * Só os cinzas mudam; erro, sucesso e git ficam os do app. No dia, o destaque também muda (ICH-F35).
  */
 
-/** Noite: quase preto, com um fio de roxo. */
+/** Noite: quase preto, com um fio de azul. */
 export const CORES_NOITE = makeColors({
   label: 'Céu estrelado',
   only: 'dark',
   dark: {
     gray: {
       anchors: {
-        'surface-0': '#09080e',
-        'surface-1': '#0e0c14',
-        'surface-2': '#13111a',
-        'surface-3': '#191621',
-        'text-primary': '#ecebf1',
-        'text-secondary': '#c9c6d3',
-        'text-muted': '#a3a0b0',
+        'surface-0': '#070a12',
+        'surface-1': '#0b0f19',
+        'surface-2': '#10151f',
+        'surface-3': '#151b27',
+        'text-primary': '#eaedf3',
+        'text-secondary': '#c6ccd8',
+        'text-muted': '#a0a8b8',
       },
     },
   },

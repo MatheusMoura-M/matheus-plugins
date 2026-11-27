@@ -557,7 +557,7 @@ for (const [caso, arquivos] of ESCUROS) {
     await iniciar($, on, { arquivos })
     for (const surface of SUPERFICIES) {
       const ui = await montar($, surface)
-      expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#030014')
+      expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#020a1c')
       if (surface === 'desktop') expect(String((await ui.find({ type: 'Svg' }))?.props.source)).toMatch(/mask id="crescente"/)
       else expect(await estrelas(ui)).toMatch(/[·✦⋆]/)
       expect(await ui.find({ type: 'Button', text: /^☀$/ }), 'no escuro, o sol leva ao claro').toBeDefined()
@@ -576,7 +576,7 @@ test('tema: o clique troca na hora e grava o tema.json; o seguinte volta', async
   await ui.press({ key: 'tema' })
   await m.relogio.settle()
   expect(JSON.parse(m.arquivos.get(`${KIT}/tema.json`) as string).tema).toBe('escuro')
-  expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#030014')
+  expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#020a1c')
   await ui.unmount()
 })
 

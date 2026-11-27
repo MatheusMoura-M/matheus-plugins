@@ -1,5 +1,5 @@
 // O céu da barra, puro e testado direto. Dois temas, pela escolha da pessoa (o botão de tema, gravado no `tema.json`):
-// noite para o escuro (a paleta do painel, #030014, estrelas e a lua) e dia para o claro (céu azul, sol e nuvens). Posições vêm de uma semente fixa: a barra não
+// noite para o escuro (azul-marinho #020a1c, estrelas e a lua) e dia para o claro (céu azul, sol e nuvens). Posições vêm de uma semente fixa: a barra não
 // "pula" a cada desenho.
 //
 // O app não pinta `Svg` numa caixa `position="absolute"` (medido no ICH-F22): o desktop leva a cor lisa do céu
@@ -19,7 +19,7 @@ export type Tema = {
 }
 
 export const TEMAS: Record<Modo, Tema> = {
-  noite: { fundo: '#030014', texto: '#d9d0ff', aviso: '#f5b84a', detalheTerminal: '#5b3fd6' },
+  noite: { fundo: '#020a1c', texto: '#d0e2ff', aviso: '#f5b84a', detalheTerminal: '#3f6fd6' },
   // Dia: a paleta da ICH-F21 (céu #74b6ef → #9ccdf4 → #d6ebfb, texto #0b1f3a, aviso no âmbar escuro #744700, AA no céu).
   dia: { fundo: '#74b6ef', texto: '#0b1f3a', aviso: '#744700', detalheTerminal: '#e3f1fd' },
 }
@@ -127,7 +127,7 @@ const PX_VAO = 8
 /** Pixels por coluna da fonte de código do app: só para dimensionar a cena pela largura da barra. */
 export const PX_POR_COLUNA = 8
 
-const CORES_ESTRELA = ['#ffffff', '#d9d0ff', '#c8a8ff', '#9fb4ff']
+const CORES_ESTRELA = ['#ffffff', '#d0e2ff', '#a8c8ff', '#9fb4ff']
 const PX_POR_ESTRELA = 14
 
 const d1 = (n: number) => (Math.round(n * 10) / 10).toString()
@@ -161,10 +161,10 @@ function cenaDaNoite(l: number, parado: boolean): string {
     `<svg xmlns="http://www.w3.org/2000/svg" width="${l}" height="${a}" viewBox="0 0 ${l} ${a}">` +
     (parado ? '' : `<style>${ESTILO_NOITE}</style>`) +
     `<defs><radialGradient id="luar" cx="${mx}" cy="${my}" r="${RAIO_BRILHO}" gradientUnits="userSpaceOnUse">` +
-    `<stop offset="0" stop-color="#e1d6ff" stop-opacity=".55"/><stop offset=".5" stop-color="#a78bfa" stop-opacity=".2"/>` +
-    `<stop offset="1" stop-color="#8f7cff" stop-opacity="0"/></radialGradient>` +
+    `<stop offset="0" stop-color="#d6e6ff" stop-opacity=".55"/><stop offset=".5" stop-color="#8bb0fa" stop-opacity=".2"/>` +
+    `<stop offset="1" stop-color="#7ca4ff" stop-opacity="0"/></radialGradient>` +
     `<radialGradient id="lua" cx="35%" cy="35%" r="75%"><stop offset="0" stop-color="#ffffff"/>` +
-    `<stop offset=".7" stop-color="#e9e3ff"/><stop offset="1" stop-color="#c8b8ff"/></radialGradient>` +
+    `<stop offset=".7" stop-color="#e3ecff"/><stop offset="1" stop-color="#b8d0ff"/></radialGradient>` +
     `<mask id="crescente"><rect width="${l}" height="${a}" fill="#fff"/>` +
     `<circle cx="${mx + 3}" cy="${my - 2}" r="${RAIO_SOL}" fill="#000"/></mask></defs>` +
     `<rect width="${l}" height="${a}" fill="${TEMAS.noite.fundo}"/>` +
