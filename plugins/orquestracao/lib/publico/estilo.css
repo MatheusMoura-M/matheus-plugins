@@ -1,7 +1,7 @@
 /* Base do Painel (perguntas, sessões e entregas): tokens, tipografia, topo, seções, botões e pé. Os cartões ficam em perguntas.css.
    Dois céus, pela escolha do botão de tema (`tema.json`): a noite (`:root`, o escuro e o padrão) e o dia
    (`:root[data-ceu="dia"]`, o claro), que só redefine tokens.
-   Inspirada no reflect.app (sem copiar nada dele): fundo quase preto puxado ao violeta, títulos em Geist 500,
+   Inspirada no reflect.app (sem copiar nada dele): fundo quase preto puxado ao azul-marinho, títulos em Geist 500,
    corpo em system-ui, muito respiro e fios finos. Feita para uma coluna estreita (300–420 px); em tela larga
    as colunas ficam lado a lado. */
 @font-face {
@@ -14,23 +14,24 @@
 
 :root {
   /* Cor */
-  --espaco: #030014;
+  --espaco: #020a1c;
   --texto: #ffffff;
-  --texto-2: rgba(239, 237, 253, 0.6);
-  /* .55 sobre #030014 dá ~5,5:1 (WCAG AA para texto de 12 px, com folga sobre o vidro). */
-  --texto-3: rgba(239, 237, 253, 0.55);
-  --fio: rgba(239, 237, 253, 0.08);
-  --fio-forte: rgba(239, 237, 253, 0.14);
-  --vidro: rgba(14, 10, 36, 0.5);
-  --vidro-forte: rgba(18, 12, 44, 0.72);
-  --lilas: #c4b5fd;
-  --violeta: #8b5cf6;
-  --violeta-fundo: rgba(139, 92, 246, 0.14);
-  --botao-texto: #f4f0ff;
+  --texto-2: rgba(234, 240, 253, 0.6);
+  /* .55 sobre #020a1c dá ~5,5:1 (WCAG AA para texto de 12 px, com folga sobre o vidro). */
+  --texto-3: rgba(234, 240, 253, 0.55);
+  --fio: rgba(234, 240, 253, 0.08);
+  --fio-forte: rgba(234, 240, 253, 0.14);
+  --vidro: rgba(8, 14, 32, 0.5);
+  --vidro-forte: rgba(10, 18, 40, 0.72);
+  /* Acento índigo claro (o mesmo par do tema desligado): distinto do azul-céu do "trabalhando". */
+  --lilas: #a5b4fc;
+  --violeta: #4f7df0;
+  --violeta-fundo: rgba(79, 125, 240, 0.14);
+  --botao-texto: #f0f5ff;
   --ok: #86e3c8;
   --alto: #e2c2ff;
   --critico: #ff9cbd;
-  --foco: #c8b8ff;
+  --foco: #b8d0ff;
   /* Status do kit nos selos do topo: 🟡 aguarda, 🔵 trabalhando, 🟢 entregou. */
   --aguarda: #f5d27a;
   --trabalhando: #8ec5ff;
@@ -38,16 +39,16 @@
   --entregou: var(--ok);
   /* Literais de antes, agora tokens: o dia troca só estes valores. */
   --texto-campo: rgba(255, 255, 255, 0.9);
-  --campo-fundo: rgba(3, 0, 20, 0.6);
-  --h1-degrade: linear-gradient(180deg, #ffffff 30%, #cbb8ff);
+  --campo-fundo: rgba(2, 10, 28, 0.6);
+  --h1-degrade: linear-gradient(180deg, #ffffff 30%, #b8d0ff);
   --contagem-fundo: transparent;
   --botao-fundo: rgba(255, 255, 255, 0.07);
-  --botao-borda-hover: rgba(196, 181, 253, 0.45);
-  --botao-fundo-hover: rgba(139, 92, 246, 0.18);
+  --botao-borda-hover: rgba(168, 200, 255, 0.45);
+  --botao-fundo-hover: rgba(79, 125, 240, 0.18);
   --primario-texto: var(--botao-texto);
-  --primario-fundo: rgba(124, 77, 238, 0.42);
-  --primario-fundo-hover: rgba(139, 92, 246, 0.58);
-  --primario-sombra: 0 6px 20px -10px rgba(139, 92, 246, 0.9);
+  --primario-fundo: rgba(63, 111, 214, 0.42);
+  --primario-fundo-hover: rgba(79, 125, 240, 0.58);
+  --primario-sombra: 0 6px 20px -10px rgba(79, 125, 240, 0.9);
 
   /* Tipo: títulos em Geist, o resto no sistema */
   --titulo: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
@@ -234,7 +235,7 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
 }
 .gaveta[open] { animation: gaveta-entra 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes gaveta-entra { from { transform: translateX(-100%); } }
-.gaveta::backdrop { background: rgba(6, 4, 18, 0.45); }
+.gaveta::backdrop { background: rgba(4, 8, 18, 0.45); }
 :root[data-ceu="dia"] .gaveta::backdrop { background: rgba(13, 36, 67, 0.22); }
 /* O conteúdo enche a gaveta: clique que cai na própria <dialog> é no fundo escurecido, e fecha. */
 .gaveta-dentro { height: 100%; display: flex; flex-direction: column; gap: 12px; padding: 20px var(--gutter); overflow-y: auto; }

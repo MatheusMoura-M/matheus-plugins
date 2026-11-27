@@ -219,16 +219,18 @@ export const CENAS: Record<Modo, string> = { noite: 'noite-do-kit', dia: 'dia-do
 
 /** O vidro fosco dos painéis herda a cor da paleta (sem `tint`). */
 const VIDRO = { blur: 14, opacity: 0.55 }
+/** De dia o vidro desfoca menos: as nuvens atrás dos painéis continuam com contorno. */
+const VIDRO_DIA = { blur: 4, opacity: 0.55 }
 const LOOKS: Record<Modo, ThemeSetArgs> = {
   noite: { colors: CORES_NOITE.theme, backdrop: { scene: CENAS.noite, glass: VIDRO } },
-  dia: { colors: CORES_DIA.theme, backdrop: { scene: CENAS.dia, glass: VIDRO } },
+  dia: { colors: CORES_DIA.theme, backdrop: { scene: CENAS.dia, glass: VIDRO_DIA } },
 }
 
 // Montados uma vez por carga: as cadentes da noite sorteiam lugar e ritmo a cada carga.
 const FUNDOS: Record<string, { source: string; alt: string }> = {
   [CENAS.noite]: {
     source: svgDoCeu(),
-    alt: 'Céu noturno com via láctea, galáxias e estrelas piscando, estrelas cadentes de vez em quando e um planeta violeta nascendo no rodapé',
+    alt: 'Céu noturno com via láctea, galáxias e estrelas piscando, estrelas cadentes de vez em quando e um planeta azul nascendo no rodapé',
   },
   [CENAS.dia]: { source: svgDoDia(), alt: 'Céu azul de dia com nuvens andando devagar e um sol enorme nascendo no rodapé' },
 }

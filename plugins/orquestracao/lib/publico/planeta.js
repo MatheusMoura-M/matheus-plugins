@@ -1,4 +1,4 @@
-// O planeta do rodapé: um globo escuro nascendo na borda de baixo, com a atmosfera violeta e lilás acesa no limbo (a paleta da página).
+// O planeta do rodapé: um globo escuro nascendo na borda de baixo, com a atmosfera cobalto e azul-gelo acesa no limbo (a paleta da página).
 // Corpo e atmosfera são pintados uma vez em camadas do tamanho da faixa de baixo; por quadro só respiram o halo e sobem umas poucas fagulhas.
 // Roda dentro do laço do céu (ceu.js): mesmos 12 qps, mesma pausa com a aba oculta e com `prefers-reduced-motion`.
 
@@ -38,10 +38,10 @@ function pintarCorpo(ctx, p) {
 
   // Brilho largo que a atmosfera joga no céu logo acima do limbo.
   const aura = ctx.createRadialGradient(cx, cy, r * 0.97, cx, cy, r + HALO * 2.2);
-  aura.addColorStop(0, 'rgba(168, 60, 220, 0.24)');
-  aura.addColorStop(0.18, 'rgba(139, 70, 240, 0.16)');
-  aura.addColorStop(0.5, 'rgba(91, 63, 214, 0.08)');
-  aura.addColorStop(1, 'rgba(91, 63, 214, 0)');
+  aura.addColorStop(0, 'rgba(60, 140, 220, 0.24)');
+  aura.addColorStop(0.18, 'rgba(70, 130, 240, 0.16)');
+  aura.addColorStop(0.5, 'rgba(63, 111, 214, 0.08)');
+  aura.addColorStop(1, 'rgba(63, 111, 214, 0)');
   ctx.fillStyle = aura;
   ctx.fillRect(0, p.topo - HALO * 2.4, p.w, p.h - p.topo + HALO * 2.4);
 
@@ -50,36 +50,36 @@ function pintarCorpo(ctx, p) {
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.clip();
 
-  // Corpo: quase preto, um tom de ameixa no alto, onde a luz bate.
+  // Corpo: quase preto, um tom de azul-marinho no alto, onde a luz bate.
   const corpo = ctx.createLinearGradient(0, p.topo, 0, p.h);
-  corpo.addColorStop(0, '#120a26');
-  corpo.addColorStop(0.35, '#090718');
-  corpo.addColorStop(1, '#05050f');
+  corpo.addColorStop(0, '#0a1630');
+  corpo.addColorStop(0.35, '#070f22');
+  corpo.addColorStop(1, '#040812');
   ctx.fillStyle = corpo;
   ctx.fillRect(0, p.topo, p.w, p.h - p.topo);
 
-  // Atmosfera vista por dentro: o anel acende de roxo a lilás colado à borda.
+  // Atmosfera vista por dentro: o anel acende de cobalto a azul-gelo colado à borda.
   const atmosfera = ctx.createRadialGradient(cx, cy, r - ATMOSFERA, cx, cy, r);
-  atmosfera.addColorStop(0, 'rgba(91, 63, 214, 0)');
-  atmosfera.addColorStop(0.5, 'rgba(110, 60, 220, 0.10)');
-  atmosfera.addColorStop(0.82, 'rgba(147, 70, 230, 0.30)');
-  atmosfera.addColorStop(0.96, 'rgba(200, 130, 250, 0.62)');
-  atmosfera.addColorStop(1, 'rgba(245, 225, 255, 0.9)');
+  atmosfera.addColorStop(0, 'rgba(63, 111, 214, 0)');
+  atmosfera.addColorStop(0.5, 'rgba(60, 110, 220, 0.10)');
+  atmosfera.addColorStop(0.82, 'rgba(70, 134, 230, 0.30)');
+  atmosfera.addColorStop(0.96, 'rgba(130, 186, 250, 0.62)');
+  atmosfera.addColorStop(1, 'rgba(225, 239, 255, 0.9)');
   ctx.fillStyle = atmosfera;
   ctx.fillRect(0, p.topo, p.w, p.h - p.topo);
 
   // Sombra que desce do alto: o lado de baixo do globo apaga, como na noite do planeta.
   const noite = ctx.createLinearGradient(0, p.topo, 0, p.h);
-  noite.addColorStop(0, 'rgba(5, 5, 15, 0)');
-  noite.addColorStop(0.45, 'rgba(5, 5, 15, 0.35)');
-  noite.addColorStop(1, 'rgba(5, 5, 15, 0.85)');
+  noite.addColorStop(0, 'rgba(4, 8, 18, 0)');
+  noite.addColorStop(0.45, 'rgba(4, 8, 18, 0.35)');
+  noite.addColorStop(1, 'rgba(4, 8, 18, 0.85)');
   ctx.fillStyle = noite;
   ctx.fillRect(0, p.topo, p.w, p.h - p.topo);
   ctx.restore();
 
   // O fio do limbo, fino e claro.
   ctx.lineWidth = 1.2;
-  ctx.strokeStyle = 'rgba(240, 225, 255, 0.85)';
+  ctx.strokeStyle = 'rgba(225, 237, 255, 0.85)';
   ctx.beginPath();
   ctx.arc(cx, cy, r, Math.PI, Math.PI * 2);
   ctx.stroke();
@@ -88,10 +88,10 @@ function pintarCorpo(ctx, p) {
 /** O halo que respira, à parte, para variar só o seu alfa a cada quadro. */
 function pintarHalo(ctx, p) {
   const halo = ctx.createRadialGradient(p.cx, p.cy, p.r * 0.995, p.cx, p.cy, p.r + HALO);
-  halo.addColorStop(0, 'rgba(225, 180, 255, 0.55)');
-  halo.addColorStop(0.12, 'rgba(168, 85, 247, 0.32)');
-  halo.addColorStop(0.45, 'rgba(143, 124, 255, 0.10)');
-  halo.addColorStop(1, 'rgba(143, 124, 255, 0)');
+  halo.addColorStop(0, 'rgba(180, 216, 255, 0.55)');
+  halo.addColorStop(0.12, 'rgba(85, 156, 247, 0.32)');
+  halo.addColorStop(0.45, 'rgba(124, 164, 255, 0.10)');
+  halo.addColorStop(1, 'rgba(124, 164, 255, 0)');
   ctx.fillStyle = halo;
   ctx.fillRect(0, p.topo - HALO, p.w, p.h - p.topo + HALO);
 }
@@ -134,7 +134,7 @@ export function quadroPlaneta(ctx, { p, corpo, halo, fagulhas }, s) {
     const t = (f.fase + s * f.ritmo) % 1;
     const y = limbo - 4 - t * f.subida;
     const a = Math.sin(t * Math.PI) * 0.9;
-    ctx.fillStyle = `rgba(235, 220, 255, ${a.toFixed(3)})`;
+    ctx.fillStyle = `rgba(220, 233, 255, ${a.toFixed(3)})`;
     ctx.fillRect(f.x, y, f.tam, f.tam);
   }
 }

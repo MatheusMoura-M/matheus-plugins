@@ -14,7 +14,7 @@ Só lê arquivos, roda os contadores declarados e lê `list_sessions` no máximo
 ## Tema (escuro e claro, pelo botão)
 
 - **Só o botão decide**: o ícone mostra para onde vai (`☀` leva ao claro, `☾` ao escuro). O clique troca na hora e grava o `tema.json`; a escolha feita numa página chega na leitura de 2 s. Sem escolha (ou arquivo ilegível), o escuro. Nem a hora nem o modo ausente mudam o tema.
-- **Escuro (noite)**: fundo `#030014`, estrelas que cintilam e a lua crescente à direita, no lugar do sol (a paleta do painel).
+- **Escuro (noite)**: fundo azul-marinho `#020a1c`, estrelas que cintilam e a lua crescente à direita, no lugar do sol (a paleta do painel, com o planeta azul).
 - **Claro (dia)**: o céu da paleta de dia do Painel (ICH-F21: `#74b6ef` → `#d6ebfb`, texto `#0b1f3a`), o sol com brilho e raios à direita e nuvens paradas ao fundo.
 - **Tema do app** (Claude desktop e mobile): o céu da página atrás da conversa — à noite a via láctea, galáxias, estrelas que piscam, cadentes de lugar e ritmo sorteados e o planeta; de dia o céu azul, nuvens pequenas e o sol — com a paleta do app puxada para cada céu (de dia, o destaque do app vira o azul bebê das páginas, com texto marinho). Segue o botão de tema e vem **ligado**. Liga e desliga pela gaveta de temas (botão do canto esquerdo do topo) do Painel e do painel de contas, que gravam `~/.claude/matheus-plugins/tema-do-app.json`; a barra relê a cada 2 s. Se o app não forçar o modo da paleta, os painéis seguem o claro/escuro do sistema e só o fundo segue o botão.
 - **Ícones**: todo botão abre com um glifo (`☀`/`☾` do tema, `↩ Estou de volta`, `◌ Ficar ausente`, `◫ Painel`, `◉ Contas`); outro plugin escolhe o dele pelo `icone` do `barra.json`, e sem ele vem `✦`.
