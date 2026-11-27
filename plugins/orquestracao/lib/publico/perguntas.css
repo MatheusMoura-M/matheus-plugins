@@ -197,3 +197,10 @@
 /* Erros Eitri: o erro resumido fica à vista no cartão fechado; o resto abre. */
 .resumo-eitri { margin: 8px 0 0; color: var(--texto-campo); font-size: var(--t-corpo); line-height: 20px; overflow-wrap: anywhere; }
 .secao > .motivo { margin: 12px 0 0; font-size: var(--t-meta); }
+/* O selo da versão vai logo depois do de erros (o primeiro selo já empurra os dois para a direita). */
+.cartao-cab > .selo + .selo { margin-left: 6px; }
+.selo-versao-prod { --cor-selo: var(--aguarda); }
+.selo-versao-dev { --cor-selo: var(--trabalhando); }
+.selo-versao-antiga { --cor-selo: var(--texto-2); }
+.versoes { margin: 0; padding: 0; list-style: none; }
+.versoes-app { color: var(--texto-2); }

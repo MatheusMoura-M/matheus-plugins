@@ -13,6 +13,32 @@ const texto = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 const inteiro = (v) => Number.isInteger(v) && v >= 0;
 const isoValido = (v) => typeof v === 'string' && !Number.isNaN(Date.parse(v));
 
+const VERSAO = /^\d+(?:\.\d+)*$/;
+
+/** -1, 0 ou 1 pelas partes numéricas (`0.10.0` > `0.9.9`, `1.2` = `1.2.0`); `null` se uma delas não é versão. */
+export function compararVersoes(a, b) {
+  if (!VERSAO.test(String(a ?? '')) || !VERSAO.test(String(b ?? ''))) return null;
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d) return Math.sign(d);
+  }
+  return 0;
+}
+
+/** As versões de cada Eitri-app da loja: a do erro mais recente e as publicadas agora em prod e em dev. */
+function versoesLidas(v, onde) {
+  if (v == null) return { versoes: [] };
+  if (!Array.isArray(v)) return { problema: `${onde}.versoes: lista de { eitriApp, erro, prod, dev }` };
+  const versoes = [];
+  for (const [n, o] of v.entries()) {
+    if (!o || typeof o !== 'object' || !texto(o.eitriApp)) return { problema: `${onde}.versoes[${n}].eitriApp: texto obrigatório` };
+    versoes.push({ eitriApp: texto(o.eitriApp), erro: texto(o.erro), prod: texto(o.prod), dev: texto(o.dev) });
+  }
+  return { versoes };
+}
+
 /** Uma loja: `{ loja }` normalizada ou `{ problema }` dizendo o campo. */
 function lojaLida(o, n) {
   const onde = `lojas[${n}]`;
@@ -26,11 +52,13 @@ function lojaLida(o, n) {
   if (o.desde != null && !DIA.test(String(o.desde))) return { problema: `${onde}.desde: AAAA-MM-DD` };
   if (o.ultimoEm != null && !isoValido(o.ultimoEm)) return { problema: `${onde}.ultimoEm: data ISO-8601` };
   if (o.tendencia != null && !TENDENCIAS.includes(o.tendencia)) return { problema: `${onde}.tendencia: ${TENDENCIAS.join(', ')}` };
+  const { versoes, problema } = versoesLidas(o.versoes, onde);
+  if (problema) return { problema };
   return {
     loja: {
       organizacao: texto(o.organizacao), aplicativo: texto(o.aplicativo), eitriApp: texto(o.eitriApp),
       erros: o.erros, hoje: o.hoje ?? null, crashes: o.crashes ?? null, resumo: texto(o.resumo), desde: o.desde ?? null,
-      ultimoEm: o.ultimoEm ?? null, versao: texto(o.versao), tendencia: o.tendencia ?? null,
+      ultimoEm: o.ultimoEm ?? null, versao: texto(o.versao), tendencia: o.tendencia ?? null, versoes,
     },
   };
 }

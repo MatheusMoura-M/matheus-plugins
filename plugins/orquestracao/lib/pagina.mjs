@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import * as estado from './estado.mjs';
 import { ROTULO_DO_ESTADO, duracao, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
 import { BOTAO_DE_TEMA, BOTAO_DE_TEMAS, GAVETA_DE_TEMAS } from './publico/tema.js';
-import { RELATORIO_VELHO_MS, lerRelatorioEitri } from './eitri.mjs';
+import { RELATORIO_VELHO_MS, compararVersoes, lerRelatorioEitri } from './eitri.mjs';
 
 export const PORTA_PADRAO = 4747;
 const HOST = '127.0.0.1';
@@ -234,12 +234,41 @@ const janela = (r) => (r.de === r.ate ? diaCurto(r.ate) : `${diaCurto(r.de)} a $
 /** O id do cartão (o Painel lembra quais estavam abertos): letras, dígitos e hífen. */
 export const idDoCartaoEitri = (l) => `eitri-${[l.organizacao, l.aplicativo, l.eitriApp ?? ''].join('-').toLowerCase().replace(/[^\w-]+/g, '-')}`;
 
+/** Onde caiu o erro de um Eitri-app: na versão de prod, numa mais nova (a de dev), numa antiga; `null` sem como comparar. */
+function onde(v) {
+  const c = compararVersoes(v.erro, v.prod);
+  if (c === null) return null;
+  if (c === 0) return 'prod';
+  return c > 0 ? 'dev' : 'antiga';
+}
+
+const SELO_DA_VERSAO = {
+  prod: '<span class="selo selo-versao-prod">na versão de prod</span>',
+  dev: '<span class="selo selo-versao-dev">versão nova (dev)</span>',
+  antiga: '<span class="selo selo-versao-antiga">versão antiga</span>',
+};
+
+/** O selo do cartão: basta um Eitri-app na versão de prod (ou numa mais nova) para não ser "versão antiga". */
+function seloDaVersao(versoes) {
+  const lugares = versoes.map(onde).filter(Boolean);
+  const qual = ['prod', 'dev', 'antiga'].find((q) => lugares.includes(q));
+  return qual ? SELO_DA_VERSAO[qual] : '';
+}
+
+/** `erro 0.5.71 · prod 0.5.95 · dev 0.5.95`, uma linha por Eitri-app (com o nome quando há mais de um). */
+function versoesHtml(versoes) {
+  const linha = (v) => [v.erro && `erro ${v.erro}`, v.prod && `prod ${v.prod}`, v.dev && `dev ${v.dev}`].filter(Boolean).join(' · ');
+  if (versoes.length === 1) return esc(linha(versoes[0]));
+  return `<ul class="versoes">${versoes.map((v) => `<li><span class="versoes-app">${esc(v.eitriApp)}</span> ${esc(linha(v))}</li>`).join('')}</ul>`;
+}
+
 function cartaoDeErroEitri(l, agora, dias) {
   const desde = l.desde ? `${diaLongo(l.desde)} (${haDias(diasEntre(l.desde, diaSP(agora)))})` : '';
   const total = dias > 1 ? `${quantos(l.erros, 'erro', 'erros')} em ${dias} dias` : quantos(l.erros, 'erro', 'erros');
-  return `<li><details class="entrega eitri" id="${esc(idDoCartaoEitri(l))}"><summary><div class="cartao-cab">${cabecaDoProjeto(l.organizacao)}<span class="cartao-titulo">${esc(l.aplicativo)}</span><span class="selo selo-parado">${esc(total)}</span></div>
+  const versao = l.versoes.length ? ['Versões', versoesHtml(l.versoes)] : ['Versão', esc(l.versao)];
+  return `<li><details class="entrega eitri" id="${esc(idDoCartaoEitri(l))}"><summary><div class="cartao-cab">${cabecaDoProjeto(l.organizacao)}<span class="cartao-titulo">${esc(l.aplicativo)}</span><span class="selo selo-parado">${esc(total)}</span>${seloDaVersao(l.versoes)}</div>
 <p class="resumo-eitri">${esc(l.resumo)}</p></summary>
-${campos([['Hoje', l.hoje === null ? '' : esc(String(l.hoje))], ['Eitri-app', esc(l.eitriApp)], ['Desde', esc(desde)], ['Último', esc(l.ultimoEm ? horaSP(l.ultimoEm) : '')], ['Versão', esc(l.versao)], ['Crashes', l.crashes === null ? '' : esc(String(l.crashes))], ['Tendência', esc(ROTULO_DA_TENDENCIA[l.tendencia] ?? '')]])}</details></li>`;
+${campos([['Hoje', l.hoje === null ? '' : esc(String(l.hoje))], ['Eitri-app', esc(l.eitriApp)], ['Desde', esc(desde)], ['Último', esc(l.ultimoEm ? horaSP(l.ultimoEm) : '')], versao, ['Crashes', l.crashes === null ? '' : esc(String(l.crashes))], ['Tendência', esc(ROTULO_DA_TENDENCIA[l.tendencia] ?? '')]])}</details></li>`;
 }
 
 /** A seção só aparece com relatório gravado (máquina sem a tarefa das 8h não vê nada). */
