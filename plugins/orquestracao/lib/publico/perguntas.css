@@ -193,3 +193,7 @@
 :root[data-tema-do-painel="desligado"] .cartoes > li.sem-item { border-style: solid; border-radius: 0; }
 :root[data-tema-do-painel="desligado"] .grupo { font-weight: 600; }
 :root[data-tema-do-painel="desligado"] .entrega > summary:hover .cartao-titulo, :root[data-tema-do-painel="desligado"] .sessao-detalhe > summary:hover .cartao-titulo { color: var(--texto); text-decoration: underline; }
+
+/* Erros Eitri: o erro resumido fica à vista no cartão fechado; o resto abre. */
+.resumo-eitri { margin: 8px 0 0; color: var(--texto-campo); font-size: var(--t-corpo); line-height: 20px; overflow-wrap: anywhere; }
+.secao > .motivo { margin: 12px 0 0; font-size: var(--t-meta); }

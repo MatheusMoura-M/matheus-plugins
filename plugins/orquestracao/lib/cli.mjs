@@ -4,10 +4,11 @@
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import * as estado from './estado.mjs';
 import { gravarPassagem } from '../hooks/comum.mjs';
 import { abrirPagina, arquivarTudo, servir, PORTA_PADRAO } from './pagina.mjs';
+import { gravarRelatorioEitri } from './eitri.mjs';
 
 const ETAPAS = new Set(['planejamento', 'execucao', 'revisao', 'pr', 'feito', 'parado', 'descartado']);
 const DESFECHOS = { entregue: 'feito', parcial: 'feito', parado: 'parado' };
@@ -33,6 +34,7 @@ const AJUDA = `perguntas — perguntas ao operador e itens do projeto
   perguntas sigla [SIG] [--todas]           a sigla do projeto (IZA em IZA-F3); com SIG, troca; --todas lista todas
   perguntas arquivar                        move para arquivo/ os itens entregues há mais de 30 dias (não apaga)
   perguntas pagina [--abrir | --subir] [--porta ${PORTA_PADRAO}]
+  perguntas eitri gravar <arquivo.json | ->   valida e grava o resumo de erros da Eitri que o Painel mostra (a tarefa das 8h)
 
 Ids: F7 ou ICH-F7, Q12 ou ICH-Q12. Com a sigla e sem --projeto, a sigla escolhe o projeto.
 Opção comum: --projeto <nome> (padrão: a pasta do repositório principal).`;
@@ -250,6 +252,15 @@ export async function main(argv, out = (s) => process.stdout.write(`${s}\n`)) {
     return 0;
   }
   if (cmd === 'item') return cmdItem(args, v, projeto, out) ?? (out(AJUDA), 1);
+  if (cmd === 'eitri') {
+    if (args[0] !== 'gravar' || !args[1]) throw new Error('uso: perguntas eitri gravar <arquivo.json | ->');
+    let bruto;
+    try { bruto = JSON.parse(readFileSync(args[1] === '-' ? 0 : args[1], 'utf8')); } catch (err) { throw new Error(`não li o relatório: ${err.message}`); }
+    const r = gravarRelatorioEitri(estado.raiz(), bruto);
+    const n = r.lojas.length;
+    out(`gravado: ${n === 1 ? '1 loja com erro' : `${n} lojas com erro`} em ${r.dia}${r.falhas.length ? ` · ${r.falhas.length} sem verificar` : ''}`);
+    return 0;
+  }
   if (cmd === 'pagina') {
     const porta = Number(v.porta || PORTA_PADRAO);
     if (v.abrir || v.subir) { out(await abrirPagina(porta, { navegador: Boolean(v.abrir) })); return 0; }

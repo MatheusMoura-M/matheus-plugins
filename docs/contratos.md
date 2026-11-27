@@ -17,6 +17,7 @@ Tudo o que é de máquina (não de projeto) mora em `~/.claude/matheus-plugins/`
 | `siglas.json` | `orquestracao` (`perguntas sigla`) | `orquestracao` |
 | `pedidos/<uuid>.json` | página do `orquestracao` | `barra` (o mod toma, executa e apaga) |
 | `sessoes-do-app.json` | `barra` (a cada 60 s) | `orquestracao` (página, seção Sessões) |
+| `eitri-erros.json` | a tarefa agendada "Erros Eitri" do app, pelo `perguntas eitri gravar` | `orquestracao` (página, seção Erros Eitri) |
 
 - **`<projeto>`** é o nome da pasta raiz do repositório principal (pai do `git rev-parse --path-format=absolute --git-common-dir`), para todos os worktrees darem o mesmo nome.
 - **Sigla do projeto**: 3 letras ou dígitos que antecedem o id na leitura (`IZA-F3`, `IZA-Q12`). Sai das 3 primeiras letras ou dígitos do nome, em maiúsculas, ou de `siglas.json` (`{ "<projeto>": "IZA" }`, gravado por `perguntas sigla`). O arquivo e o campo `id` seguem sem sigla (`F3.json`, `"id": "F3"`); o CLI aceita os dois formatos.
@@ -123,6 +124,16 @@ O tema das duas páginas (Painel e contas): ligado, o céu e o vidro; desligado,
 ```
 
 O status ao vivo das sessões, que só o app enxerga. O mod da barra de toda sessão aberta, a cada 60 s, lê `list_sessions` (até 50) e a própria sessão (`get_session self`, que a lista não traz, vem primeiro) e grava por cima, de forma atômica (`.tmp` e rename, pelo `node`: o mod não tem rename próprio e o Windows não tem `mv`). Arquivo com `lidoEm` de menos de 50 s: não lê de novo (outra sessão acabou de gravar). Falha da leitura não apaga o arquivo. A página casa a sessão com o item pelo `sessao` do item; quando esse id não está na lista ou está arquivado (gravado com o id do transcript, ou a dona foi reaberta), vale a sessão aberta do mesmo projeto cujo título começa pelo código do item (`IZA-F48 · …`, ICH-F38). Com `lidoEm` de mais de 3 min, ela só mostra a idade e não deduz parada nem "rodando". Nada disso entra no contexto do modelo.
+
+### `eitri-erros.json`
+
+```json
+{ "geradoEm": "ISO-8601", "dia": "2026-11-26", "verificados": 31, "falhas": ["Rosset: conexão recusada"],
+  "lojas": [ { "organizacao": "Wicomm", "aplicativo": "eitri-shopping-…", "eitriApp": "eitri-shopping-…-home", "erros": 4, "crashes": 0,
+               "resumo": "React #310: hook dentro de condição na home", "desde": "2026-11-23", "ultimoEm": "ISO-8601", "versao": "0.5.71", "tendencia": "subindo" } ] }
+```
+
+O resumo de erros da Eitri do dia anterior (`dia`, `AAAA-MM-DD`, horário de São Paulo). Grava a tarefa agendada do app (todo dia às 8h; com o app fechado nessa hora, roda ao abrir), que lê a Eitri pelo MCP e entrega o JSON ao `perguntas eitri gravar <arquivo | ->`. Esse comando valida e grava por cima de forma atômica; com qualquer campo errado, recusa, diz qual e não toca no arquivo. Obrigatórios: `geradoEm`, `dia` e `lojas` (vazia quando ninguém teve erro); em cada loja, `organizacao`, `aplicativo`, `erros` (inteiro ≥ 0) e `resumo`. Opcionais: `verificados` (quantos apps foram olhados), `falhas` (as organizações que não se leram), e por loja `eitriApp`, `crashes`, `desde` (`AAAA-MM-DD`, o primeiro dia do erro nos últimos 30), `ultimoEm`, `versao` e `tendencia` (`novo`, `subindo`, `caindo`, `estavel`). A página lê pelo mesmo filtro: sem arquivo, não mostra a seção; ilegível, diz; loja com campo errado fica de fora; `geradoEm` de mais de 30 h vira "relatório velho". Quais apps entram (na Mobfiq, só o `eitri-shopping-peahi`) é escolha da tarefa, não do contrato.
 
 ### `pedidos/<uuid>.json`
 
