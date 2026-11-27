@@ -258,7 +258,7 @@ export async function main(argv, out = (s) => process.stdout.write(`${s}\n`)) {
     try { bruto = JSON.parse(readFileSync(args[1] === '-' ? 0 : args[1], 'utf8')); } catch (err) { throw new Error(`não li o relatório: ${err.message}`); }
     const r = gravarRelatorioEitri(estado.raiz(), bruto);
     const n = r.lojas.length;
-    out(`gravado: ${n === 1 ? '1 loja com erro' : `${n} lojas com erro`} em ${r.dia}${r.falhas.length ? ` · ${r.falhas.length} sem verificar` : ''}`);
+    out(`gravado: ${n === 1 ? '1 loja com erro' : `${n} lojas com erro`} ${r.de === r.ate ? `em ${r.ate}` : `de ${r.de} a ${r.ate}`}${r.falhas.length ? ` · ${r.falhas.length} sem verificar` : ''}`);
     return 0;
   }
   if (cmd === 'pagina') {
