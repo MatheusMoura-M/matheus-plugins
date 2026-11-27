@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ARQUIVO_EITRI, gravarRelatorioEitri, lerRelatorioEitri, validarRelatorio } from '../lib/eitri.mjs';
+import { ARQUIVO_EITRI, compararVersoes, gravarRelatorioEitri, lerRelatorioEitri, validarRelatorio } from '../lib/eitri.mjs';
 import { main } from '../lib/cli.mjs';
 import { html } from '../lib/pagina.mjs';
 
@@ -48,7 +48,7 @@ test('o relatório antigo, de um dia só (`dia`), vale como janela daquele dia',
 test('os campos opcionais podem faltar e saem como null', () => {
   const { relatorio: r, problemas } = validarRelatorio(relatorio({ lojas: [{ organizacao: 'Mobfiq', aplicativo: 'eitri-shopping-peahi', erros: 2, resumo: 'falha' }] }));
   assert.deepEqual(problemas, []);
-  assert.deepEqual(r.lojas[0], { organizacao: 'Mobfiq', aplicativo: 'eitri-shopping-peahi', eitriApp: null, erros: 2, hoje: null, crashes: null, resumo: 'falha', desde: null, ultimoEm: null, versao: null, tendencia: null });
+  assert.deepEqual(r.lojas[0], { organizacao: 'Mobfiq', aplicativo: 'eitri-shopping-peahi', eitriApp: null, erros: 2, hoje: null, crashes: null, resumo: 'falha', desde: null, ultimoEm: null, versao: null, tendencia: null, versoes: [] });
 });
 
 test('gravar recusa relatório com problema e não deixa arquivo; válido, grava sem temporário', () => {
@@ -107,4 +107,41 @@ test('o Painel diz quando ninguém teve erro, quando a org falhou e quando o rel
   gravarRelatorioEitri(raiz(), relatorio({ geradoEm: '2026-11-24T08:05:00-03:00', de: '2026-11-18', ate: '2026-11-24', lojas: [] }));
   h = html(AGORA);
   assert.match(h, /relatório velho/);
+});
+
+const versao = (erro, prod = '0.5.95', dev = '0.5.95', eitriApp = 'eitri-shopping-wake-shoulder-home') => ({ eitriApp, erro, prod, dev });
+
+test('versoes: valida cada Eitri-app e recusa a lista que não é lista', () => {
+  const ok = validarRelatorio(relatorio({ lojas: [loja({ versoes: [versao('0.5.71'), { eitriApp: 'eitri-shopping-pdp' }] })] }));
+  assert.deepEqual(ok.problemas, []);
+  assert.deepEqual(ok.relatorio.lojas[0].versoes[1], { eitriApp: 'eitri-shopping-pdp', erro: null, prod: null, dev: null });
+  assert.match(validarRelatorio(relatorio({ lojas: [loja({ versoes: 'x' })] })).problemas.join('\n'), /versoes/);
+  assert.match(validarRelatorio(relatorio({ lojas: [loja({ versoes: [{ erro: '1.0.0' }] })] })).problemas.join('\n'), /versoes\[0\]\.eitriApp/);
+  assert.deepEqual(validarRelatorio(relatorio()).relatorio.lojas[0].versoes, []);
+});
+
+test('o cartão compara a versão do erro com a de prod e a de dev', () => {
+  gravarRelatorioEitri(raiz(), relatorio({ lojas: [loja({ versoes: [versao('0.5.71')] })] }));
+  let h = html(AGORA);
+  assert.match(h, /<dt>Versões<\/dt>/);
+  assert.match(h, /erro 0\.5\.71 · prod 0\.5\.95 · dev 0\.5\.95/);
+  assert.match(h, /class="selo selo-versao-antiga">versão antiga</, 'erro só em versão anterior à de prod');
+  gravarRelatorioEitri(raiz(), relatorio({ lojas: [loja({ versoes: [versao('0.5.95')] })] }));
+  h = html(AGORA);
+  assert.match(h, /class="selo selo-versao-prod">na versão de prod</);
+  gravarRelatorioEitri(raiz(), relatorio({ lojas: [loja({ versoes: [versao('0.5.10'), versao('0.5.95', '0.5.95', '0.5.95', 'eitri-shopping-pdp')] })] }));
+  h = html(AGORA);
+  assert.match(h, /selo-versao-prod/, 'basta um Eitri-app na versão de prod');
+  assert.doesNotMatch(h, /selo-versao-antiga/);
+  gravarRelatorioEitri(raiz(), relatorio({ lojas: [loja({ versoes: [versao('0.5.71', null, null)] })] }));
+  h = html(AGORA);
+  assert.doesNotMatch(h, /selo-versao-/, 'sem a versão de prod, não julga');
+  assert.match(h, /erro 0\.5\.71/);
+});
+
+test('compararVersoes: por partes numéricas; texto que não é versão não compara', () => {
+  assert.equal(compararVersoes('0.5.71', '0.5.95'), -1);
+  assert.equal(compararVersoes('0.10.0', '0.9.9'), 1);
+  assert.equal(compararVersoes('1.2', '1.2.0'), 0);
+  assert.equal(compararVersoes('beta', '1.0.0'), null);
 });
